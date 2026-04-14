@@ -8,19 +8,28 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dswisher/markban/internal/board"
 	"github.com/dswisher/markban/internal/render"
 	"github.com/dswisher/markban/internal/server"
 )
 
 var renderCmd = &cobra.Command{
-	Use:   "render <board-dir>",
+	Use:   "render [board-dir]",
 	Short: "Render a Kanban board and open it in the browser",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runRender,
+	Long: `Render a Kanban board and open it in the browser.
+
+If board-dir is not specified, the command will attempt to auto-discover
+the board by finding the git root and looking for a subdirectory containing
+board.toml or with "board" in its name.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runRender,
 }
 
 func runRender(cmd *cobra.Command, args []string) error {
-	dir := args[0]
+	dir, err := resolveBoardDir(args)
+	if err != nil {
+		return err
+	}
 
 	info, err := os.Stat(dir)
 	if err != nil {
@@ -29,6 +38,8 @@ func runRender(cmd *cobra.Command, args []string) error {
 	if !info.IsDir() {
 		return fmt.Errorf("%q is not a directory", dir)
 	}
+
+	fmt.Fprintf(os.Stderr, "Loading board from: %s\n", dir)
 
 	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -70,4 +81,27 @@ func waitForPort(srv *server.Server) string {
 			return fmt.Sprintf("http://localhost:%d", p)
 		}
 	}
+}
+
+// resolveBoardDir determines the board directory to use.
+// If args contains a directory, it is used directly.
+// Otherwise, auto-discovery is attempted by finding the git root
+// and looking for a board subdirectory.
+func resolveBoardDir(args []string) (string, error) {
+	if len(args) > 0 {
+		return args[0], nil
+	}
+
+	// Auto-discover the board directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("cannot get current directory: %w", err)
+	}
+
+	boardDir, err := board.FindProjectBoard(currentDir)
+	if err != nil {
+		return "", fmt.Errorf("cannot auto-discover board directory: %w", err)
+	}
+
+	return boardDir, nil
 }

@@ -1,5 +1,5 @@
 
-.PHONY: test lint cover render
+.PHONY: test lint cover render install uninstall
 
 
 render:
@@ -16,4 +16,12 @@ test:
 
 cover: test
 	go tool cover -html=coverage.out
+
+install:
+	go install .
+	@echo "Installed markban to $(shell go env GOPATH)/bin/markban"
+
+uninstall:
+	@rm -f "$(shell go env GOPATH)/bin/markban"
+	@echo "Uninstalled markban from $(shell go env GOPATH)/bin"
 
