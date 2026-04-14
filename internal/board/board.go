@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 // Task represents a single Kanban card, parsed from a Markdown file.
@@ -27,7 +29,13 @@ type Column struct {
 
 // Board represents the full Kanban board.
 type Board struct {
+	Name    string
 	Columns []Column
+}
+
+// Config represents the board.toml configuration file.
+type Config struct {
+	Name string `toml:"name"`
 }
 
 // conventionalOrder assigns a sort order to columns whose names lack a numeric
@@ -71,7 +79,10 @@ func inferOrder(name string) int {
 
 // LoadBoard reads rootDir, discovers column subdirectories and their task
 // files, and returns a fully populated Board sorted by column order.
+// If a board.toml file exists in rootDir, it is loaded for configuration.
 func LoadBoard(rootDir string) (*Board, error) {
+	config := loadConfig(rootDir)
+
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
 		return nil, err
@@ -113,7 +124,22 @@ func LoadBoard(rootDir string) (*Board, error) {
 		return columns[i].Name < columns[j].Name
 	})
 
-	return &Board{Columns: columns}, nil
+	return &Board{Name: config.Name, Columns: columns}, nil
+}
+
+// loadConfig reads board.toml from rootDir if it exists.
+// Returns an empty Config if the file does not exist.
+func loadConfig(rootDir string) Config {
+	var config Config
+	configPath := filepath.Join(rootDir, "board.toml")
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return config
+	}
+
+	_ = toml.Unmarshal(data, &config)
+	return config
 }
 
 // loadTasks reads all .md files from a directory and parses each into a Task.

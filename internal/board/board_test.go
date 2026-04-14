@@ -66,3 +66,15 @@ func TestColumnName_WithoutPrefix(t *testing.T) {
 	assert.Equal(t, "backlog", name)
 	assert.Equal(t, -1, order)
 }
+
+func TestLoadBoard_WithConfig(t *testing.T) {
+	board, err := LoadBoard("testdata/board-with-config")
+	require.NoError(t, err)
+	assert.Equal(t, "Test Project", board.Name)
+}
+
+func TestLoadBoard_WithoutConfig(t *testing.T) {
+	board, err := LoadBoard("testdata/board")
+	require.NoError(t, err)
+	assert.Equal(t, "", board.Name)
+}

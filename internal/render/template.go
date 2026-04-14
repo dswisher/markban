@@ -97,7 +97,7 @@ const boardTemplate = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <h1>Markban</h1>
+  <h1>Markban{{if .Name}} - {{.Name}}{{end}}</h1>
   <div class="board">
     {{- range .Columns}}
     <div class="column">
