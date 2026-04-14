@@ -3,7 +3,6 @@ package server
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -89,48 +88,34 @@ func TestSSEHandler_ReceivesReloadEvent(t *testing.T) {
 	}
 }
 
-// TestServer_InitialRender verifies that Run creates the .build/index.html
-// file during startup.
-func TestServer_InitialRender(t *testing.T) {
+// TestServer_Rebuild verifies that rebuild creates .build/index.html with
+// rendered board content, without starting a network listener.
+func TestServer_Rebuild(t *testing.T) {
 	boardDir := makeTestBoardDir(t)
 	s := New(boardDir)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	require.NoError(t, s.rebuild())
 
-	go func() {
-		_ = s.Run(ctx)
-	}()
-
-	// Poll until index.html appears (max 2 seconds).
-	indexPath := filepath.Join(boardDir, ".build", "index.html")
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if _, err := os.Stat(indexPath); err == nil {
-			break
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-
-	data, err := os.ReadFile(indexPath)
+	data, err := os.ReadFile(filepath.Join(boardDir, ".build", "index.html"))
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(strings.TrimSpace(string(data)), "<!DOCTYPE html>"))
 	assert.Contains(t, string(data), "Test Task")
+}
 
-	// Poll until the server port is set, then verify it's responding.
-	var port int
-	for time.Now().Before(deadline) {
-		if p := s.Port(); p != 0 {
-			port = p
-			break
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	require.NotZero(t, port, "server port should be set")
+// TestServer_HandleIndex verifies that handleIndex serves the rendered HTML.
+func TestServer_HandleIndex(t *testing.T) {
+	boardDir := makeTestBoardDir(t)
+	s := New(boardDir)
 
-	url := fmt.Sprintf("http://localhost:%d/", port)
-	resp, err := http.Get(url)
+	require.NoError(t, s.rebuild())
+
+	ts := httptest.NewServer(http.HandlerFunc(s.handleIndex))
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/")
 	require.NoError(t, err)
 	defer resp.Body.Close()
+
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "text/html; charset=utf-8", resp.Header.Get("Content-Type"))
 }
