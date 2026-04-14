@@ -28,6 +28,9 @@ type Server struct {
 
 	mu      sync.Mutex
 	clients []chan struct{}
+
+	// ctx is set when Run starts; handleSSE uses it to exit on shutdown.
+	ctx context.Context
 }
 
 // New creates a new Server for the given board directory.
@@ -35,6 +38,7 @@ func New(boardDir string) *Server {
 	return &Server{
 		boardDir: boardDir,
 		buildDir: filepath.Join(boardDir, ".build"),
+		ctx:      context.Background(),
 	}
 }
 
@@ -81,6 +85,11 @@ func (s *Server) Run(ctx context.Context) error {
 
 	srv := &http.Server{Handler: mux}
 
+	// sseCtx is cancelled before srv.Shutdown so SSE handlers exit promptly,
+	// allowing Shutdown to complete without waiting for long-lived connections.
+	sseCtx, cancelSSE := context.WithCancel(context.Background())
+	s.ctx = sseCtx
+
 	// Start file watcher goroutine.
 	go s.watchLoop(ctx, watcher)
 
@@ -101,7 +110,10 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	// Graceful shutdown.
+	// Cancel SSE handlers first so they release their connections, then shut
+	// down the HTTP server. Without this, Shutdown blocks until its timeout
+	// waiting for the long-lived SSE connections to close.
+	cancelSSE()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)
@@ -282,6 +294,8 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
+		case <-s.ctx.Done():
+			return
 		case <-r.Context().Done():
 			return
 		case <-ch:

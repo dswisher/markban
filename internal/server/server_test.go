@@ -35,7 +35,7 @@ func makeTestBoardDir(t *testing.T) string {
 // server, triggers a reload notification via a separate request, and verifies
 // the client receives the "reload" event.
 func TestSSEHandler_ReceivesReloadEvent(t *testing.T) {
-	s := &Server{}
+	s := &Server{ctx: context.Background()}
 
 	ts := httptest.NewServer(http.HandlerFunc(s.handleSSE))
 	defer ts.Close()
