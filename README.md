@@ -8,7 +8,7 @@ This is a simple Markdown-based Kanban board, inspired by [KanBanLess](https://g
 Point the app at a directory with the proper structure, and it will open a web browser with a rendering of the board:
 
 ```shell
-markban project-board
+markban render project-board
 ```
 
 
@@ -24,13 +24,17 @@ tags: []
 
 # Task Title
 
-Brief description of the task.
+A 1-liner blurb for the task.
 
-## Checklist
+## Description
 
-- [ ] Step one
-- [ ] Step two
-- [ ] Step three
+A longer, free-form description of the task.
+
+## Subtasks
+
+- [ ] Subtask 1
+- [ ] Subtask 2
+- [ ] Subtask 3
 ```
 
 The only required bit is the task title.
@@ -54,4 +58,15 @@ my-board/
   4-done/
     completed-task.md
 ```
+
+## Contributing
+
+Some random notes on coding conventions:
+* Idiomatic Go, passing lint and formatting checks
+* All code shall have unix line-endings (LF, not CRLF), as enforced by `.editorconfig` and `.gitattributes`
+
+
+### License
+
+MIT License.
 
