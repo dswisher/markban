@@ -72,11 +72,11 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.HandleFunc("/events", s.handleSSE)
 	mux.HandleFunc("/", s.handleIndex)
 
-	// Find a free port.
-	listener, err := net.Listen("tcp", ":8080")
+	// Find a free port on localhost only (avoids macOS firewall prompt).
+	listener, err := net.Listen("tcp", "127.0.0.1:8080")
 	if err != nil {
-		// Fallback to any free port.
-		listener, err = net.Listen("tcp", ":0")
+		// Fallback to any free port on localhost.
+		listener, err = net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			return fmt.Errorf("starting listener: %w", err)
 		}
