@@ -1,9 +1,12 @@
 package render
 
 import (
+	"fmt"
 	"html/template"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/dswisher/markban/internal/board"
@@ -22,11 +25,28 @@ func RenderAndOpen(b *board.Board) error {
 		return err
 	}
 
-	return openBrowser(f.Name())
+	return OpenBrowser(f.Name())
+}
+
+// RenderToDir renders the board as HTML and writes it to <buildDir>/index.html,
+// creating the directory if it does not exist.
+func RenderToDir(b *board.Board, buildDir string) error {
+	if err := os.MkdirAll(buildDir, 0o755); err != nil {
+		return fmt.Errorf("creating build dir: %w", err)
+	}
+
+	indexPath := filepath.Join(buildDir, "index.html")
+	f, err := os.Create(indexPath)
+	if err != nil {
+		return fmt.Errorf("creating index.html: %w", err)
+	}
+	defer f.Close()
+
+	return renderHTML(b, f)
 }
 
 // renderHTML executes the board template, writing the result to w.
-func renderHTML(b *board.Board, w *os.File) error {
+func renderHTML(b *board.Board, w io.Writer) error {
 	tmpl, err := template.New("board").Parse(boardTemplate)
 	if err != nil {
 		return err
@@ -35,8 +55,8 @@ func renderHTML(b *board.Board, w *os.File) error {
 	return tmpl.Execute(w, b)
 }
 
-// openBrowser opens the given file path in the system default browser.
-func openBrowser(path string) error {
+// OpenBrowser opens the given URL or file path in the system default browser.
+func OpenBrowser(path string) error {
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {

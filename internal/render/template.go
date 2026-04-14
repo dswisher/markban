@@ -119,6 +119,10 @@ const boardTemplate = `<!DOCTYPE html>
     </div>
     {{- end}}
   </div>
+  <script>
+    const es = new EventSource("/events");
+    es.addEventListener("reload", () => location.reload());
+  </script>
 </body>
 </html>
 `

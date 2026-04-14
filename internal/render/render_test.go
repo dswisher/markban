@@ -2,6 +2,7 @@ package render
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,8 +12,8 @@ import (
 	"github.com/dswisher/markban/internal/board"
 )
 
-func TestRenderHTML(t *testing.T) {
-	b := &board.Board{
+func makeTestBoard() *board.Board {
+	return &board.Board{
 		Columns: []board.Column{
 			{
 				Name:  "Backlog",
@@ -29,20 +30,10 @@ func TestRenderHTML(t *testing.T) {
 			},
 		},
 	}
+}
 
-	f, err := os.CreateTemp("", "markban-test-*.html")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	defer f.Close()
-
-	err = renderHTML(b, f)
-	require.NoError(t, err)
-
-	// Re-read the file to inspect the output.
-	data, err := os.ReadFile(f.Name())
-	require.NoError(t, err)
-	html := string(data)
-
+func assertBoardHTML(t *testing.T, html string) {
+	t.Helper()
 	assert.Contains(t, html, "Backlog")
 	assert.Contains(t, html, "Done")
 	assert.Contains(t, html, "First Task")
@@ -53,4 +44,40 @@ func TestRenderHTML(t *testing.T) {
 	// Should be valid enough HTML to have the doctype and a body.
 	assert.True(t, strings.HasPrefix(strings.TrimSpace(html), "<!DOCTYPE html>"))
 	assert.Contains(t, html, "</html>")
+}
+
+func TestRenderHTML(t *testing.T) {
+	b := makeTestBoard()
+
+	var buf strings.Builder
+	err := renderHTML(b, &buf)
+	require.NoError(t, err)
+
+	assertBoardHTML(t, buf.String())
+}
+
+func TestRenderHTML_ContainsSSEScript(t *testing.T) {
+	b := makeTestBoard()
+
+	var buf strings.Builder
+	err := renderHTML(b, &buf)
+	require.NoError(t, err)
+
+	assert.Contains(t, buf.String(), `new EventSource("/events")`)
+}
+
+func TestRenderToDir(t *testing.T) {
+	b := makeTestBoard()
+
+	dir := t.TempDir()
+	buildDir := filepath.Join(dir, ".build")
+
+	err := RenderToDir(b, buildDir)
+	require.NoError(t, err)
+
+	indexPath := filepath.Join(buildDir, "index.html")
+	data, err := os.ReadFile(indexPath)
+	require.NoError(t, err)
+
+	assertBoardHTML(t, string(data))
 }

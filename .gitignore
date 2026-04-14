@@ -1,1 +1,4 @@
 /coverage.out
+.build
+.bin
+

@@ -2,8 +2,10 @@
 .PHONY: test lint cover render
 
 
+# Note that this builds a binary and runs it, rather than just using "go run". That is because a
+# binary with a stable name only pops up the "Allow or Deny" message once.
 render:
-	go run main.go render project-board
+	go build -o .bin/markban . && .bin/markban render project-board
 
 lint:
 	go vet ./...
