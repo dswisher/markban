@@ -57,13 +57,19 @@ func TestLoadBoard_InvalidDir(t *testing.T) {
 
 func TestColumnName_WithPrefix(t *testing.T) {
 	name, order := columnName("3-in-progress")
-	assert.Equal(t, "in-progress", name)
+	assert.Equal(t, "in progress", name)
 	assert.Equal(t, 3, order)
 }
 
 func TestColumnName_WithoutPrefix(t *testing.T) {
 	name, order := columnName("backlog")
 	assert.Equal(t, "backlog", name)
+	assert.Equal(t, -1, order)
+}
+
+func TestColumnName_HyphenToSpace(t *testing.T) {
+	name, order := columnName("in-progress")
+	assert.Equal(t, "in progress", name)
 	assert.Equal(t, -1, order)
 }
 

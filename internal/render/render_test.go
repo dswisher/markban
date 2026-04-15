@@ -66,6 +66,35 @@ func TestRenderHTML_ContainsSSEScript(t *testing.T) {
 	assert.Contains(t, buf.String(), `new EventSource("/events")`)
 }
 
+func TestRenderHTML_HyphenToSpace(t *testing.T) {
+	b := &board.Board{
+		Columns: []board.Column{
+			{
+				Name:  "in progress",
+				Order: 1,
+				Tasks: []board.Task{{Title: "Task"}},
+			},
+			{
+				Name:  "to do",
+				Order: 2,
+				Tasks: []board.Task{{Title: "Task 2"}},
+			},
+		},
+	}
+
+	var buf strings.Builder
+	err := renderHTML(b, &buf)
+	require.NoError(t, err)
+
+	html := buf.String()
+	// Should contain the spaced version, not hyphenated
+	assert.Contains(t, html, "in progress")
+	assert.Contains(t, html, "to do")
+	// Should not contain the hyphenated versions
+	assert.NotContains(t, html, "in-progress")
+	assert.NotContains(t, html, "to-do")
+}
+
 func TestRenderToDir(t *testing.T) {
 	b := makeTestBoard()
 

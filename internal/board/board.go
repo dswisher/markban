@@ -56,20 +56,24 @@ var conventionalOrder = map[string]int{
 var numericPrefix = regexp.MustCompile(`^(\d+)-`)
 
 // columnName strips a leading numeric prefix and hyphen from a directory name,
-// returning the display name and the parsed order (or -1 if no prefix).
+// returning the display name (with hyphens replaced by spaces) and the parsed
+// order (or -1 if no prefix).
 func columnName(dirName string) (name string, order int) {
 	if m := numericPrefix.FindStringSubmatch(dirName); m != nil {
 		n, _ := strconv.Atoi(m[1])
-		return dirName[len(m[0]):], n
+		name = dirName[len(m[0]):]
+		return strings.ReplaceAll(name, "-", " "), n
 	}
-	return dirName, -1
+	return strings.ReplaceAll(dirName, "-", " "), -1
 }
 
 // inferOrder returns a sort key for a column that had no numeric prefix.
 // It consults conventionalOrder first, then falls back to alphabetic via the
 // caller sorting on Name.
 func inferOrder(name string) int {
-	if o, ok := conventionalOrder[strings.ToLower(name)]; ok {
+	// Normalize: lowercase and replace spaces with hyphens for lookup
+	normalized := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+	if o, ok := conventionalOrder[normalized]; ok {
 		return o
 	}
 	// 50 sits between "in-progress" (2) and "done" (100) as a neutral fallback;

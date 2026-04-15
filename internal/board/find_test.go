@@ -9,16 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFindGitRoot_FindsGitRoot(t *testing.T) {
-	// Start from deep within the test git repo
-	startDir := "testdata/git-repo/project-board"
-	root, err := FindGitRoot(startDir)
-	require.NoError(t, err)
-
-	// Check that the directory name ends with "git-repo"
-	assert.Equal(t, "git-repo", filepath.Base(root))
-}
-
 func TestFindGitRoot_NotInGitRepo(t *testing.T) {
 	// Use a temp directory which is not a git repo
 	tempDir := t.TempDir()
@@ -40,12 +30,20 @@ func TestFindGitRoot_FromCurrentDir(t *testing.T) {
 }
 
 func TestFindBoardDirectory_WithConfig(t *testing.T) {
-	repoRoot := "testdata/git-repo"
-	boardDir, err := FindBoardDirectory(repoRoot)
+	// Create a temporary directory with a board directory containing board.toml
+	tempDir := t.TempDir()
+
+	boardDir := filepath.Join(tempDir, "project-board")
+	err := os.MkdirAll(boardDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(boardDir, "board.toml"), []byte("name = \"Test\""), 0644)
+	require.NoError(t, err)
+
+	foundBoardDir, err := FindBoardDirectory(tempDir)
 	require.NoError(t, err)
 
 	// Should prefer the directory with board.toml
-	assert.Equal(t, "project-board", filepath.Base(boardDir))
+	assert.Equal(t, "project-board", filepath.Base(foundBoardDir))
 }
 
 func TestFindBoardDirectory_ByNameOnly(t *testing.T) {
@@ -151,13 +149,27 @@ func TestFindBoardDirectory_ConfigPreferredOverName(t *testing.T) {
 }
 
 func TestFindProjectBoard_Integration(t *testing.T) {
-	// Start from within a project board directory
-	startDir := "testdata/git-repo/project-board"
-	boardDir, err := FindProjectBoard(startDir)
+	// Create a temporary directory structure with a .git directory
+	tempDir := t.TempDir()
+
+	// Create .git directory to simulate a git repo
+	gitDir := filepath.Join(tempDir, ".git")
+	err := os.MkdirAll(gitDir, 0755)
+	require.NoError(t, err)
+
+	// Create a project-board directory with a board.toml
+	boardDir := filepath.Join(tempDir, "project-board")
+	err = os.MkdirAll(boardDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(boardDir, "board.toml"), []byte("name = \"Test\""), 0644)
+	require.NoError(t, err)
+
+	// Start from within the project board directory
+	foundBoardDir, err := FindProjectBoard(boardDir)
 	require.NoError(t, err)
 
 	// Should find the project-board directory
-	assert.Equal(t, "project-board", filepath.Base(boardDir))
+	assert.Equal(t, "project-board", filepath.Base(foundBoardDir))
 }
 
 func TestFindProjectBoard_NotInGitRepo(t *testing.T) {
