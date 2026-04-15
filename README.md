@@ -59,6 +59,9 @@ my-board/
     completed-task.md
 ```
 
+It is useful to use a `.gitkeep` file in each directory, such that if the column becomes empty, git will preserve the directory.
+
+
 ## Contributing
 
 Some random notes on coding conventions:
