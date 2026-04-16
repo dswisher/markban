@@ -88,6 +88,7 @@ func (s *Server) Run(ctx context.Context) error {
 	// sseCtx is cancelled before srv.Shutdown so SSE handlers exit promptly,
 	// allowing Shutdown to complete without waiting for long-lived connections.
 	sseCtx, cancelSSE := context.WithCancel(context.Background())
+	defer cancelSSE()
 	s.ctx = sseCtx
 
 	// Start file watcher goroutine.
