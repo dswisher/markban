@@ -34,12 +34,6 @@ const (
 	blurbIndent      = 3   // Number of spaces to indent blurb
 )
 
-// ANSI escape sequences
-const (
-	boldStart = "\x1b[1m"
-	boldEnd   = "\x1b[0m"
-)
-
 func runView(cmd *cobra.Command, args []string) error {
 	dir, err := resolveBoardDir(args)
 	if err != nil {
@@ -63,11 +57,6 @@ func runView(cmd *cobra.Command, args []string) error {
 	renderBoard(b, screenWidth, screenHeight)
 
 	return nil
-}
-
-// boldString returns the string with ANSI bold formatting.
-func boldString(s string) string {
-	return boldStart + s + boldEnd
 }
 
 // renderBoard displays the board in the terminal, fitting it to the screen.
@@ -175,7 +164,7 @@ func renderColumns(columns []board.Column, columnWidth, availableHeight, screenW
 					// Output this line of the card
 					line.WriteString(card[lineIdx])
 					// Pad to column width
-					visibleLen := visibleLength(card[lineIdx])
+					visibleLen := terminal.VisibleLength(card[lineIdx])
 					if visibleLen < columnWidth {
 						line.WriteString(strings.Repeat(" ", columnWidth-visibleLen))
 					}
@@ -280,7 +269,7 @@ func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bo
 	if remainingHeight <= 0 {
 		return lines
 	}
-	titleLine := boldString(truncate(task.Title, columnWidth))
+	titleLine := terminal.Bold(truncate(task.Title, columnWidth))
 	lines = append(lines, titleLine)
 	remainingHeight--
 
@@ -379,31 +368,6 @@ func truncateVisible(s string, maxWidth int) string {
 	return truncate(s, maxWidth)
 }
 
-// visibleLength returns the visible length of a string (excluding ANSI codes).
-func visibleLength(s string) int {
-	return len(stripANSI(s))
-}
-
-// stripANSI removes ANSI escape sequences from a string.
-func stripANSI(s string) string {
-	var result strings.Builder
-	inEscape := false
-	for _, ch := range s {
-		if ch == '\x1b' {
-			inEscape = true
-			continue
-		}
-		if inEscape {
-			if ch == 'm' {
-				inEscape = false
-			}
-			continue
-		}
-		result.WriteRune(ch)
-	}
-	return result.String()
-}
-
 // padRight pads a string with spaces on the right to reach the desired width.
 func padRight(s string, width int) string {
 	if len(s) >= width {
@@ -414,7 +378,7 @@ func padRight(s string, width int) string {
 
 // center centers a string within the given width.
 func center(s string, width int) string {
-	visibleLen := visibleLength(s)
+	visibleLen := terminal.VisibleLength(s)
 	if visibleLen >= width {
 		return truncateVisible(s, width)
 	}
