@@ -26,6 +26,7 @@ Tasks are plain markdown files, with optional YAML frontmatter:
 ```markdown
 ---
 priority: medium
+color: yellow
 tags: []
 ---
 
@@ -46,6 +47,9 @@ A longer, free-form description of the task.
 
 The only required bit is the task title.
 Everything else is optional.
+
+The supported colors are yellow, green, blue, red, magenta, cyan, orange and purple. Note that in terminal mode (`markban view`), orange and purple require a 256-color terminal.
+
 
 ## Directory Structure
 

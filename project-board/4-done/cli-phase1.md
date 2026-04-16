@@ -1,5 +1,5 @@
 ---
-color: green
+color: orange
 priority: high
 ---
 
