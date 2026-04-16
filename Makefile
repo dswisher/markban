@@ -1,9 +1,12 @@
 
-.PHONY: test lint cover render install uninstall
+.PHONY: test lint cover build browse install uninstall
 
 
-render:
-	go run . render project-board
+browse:
+	go run . browse project-board
+
+build:
+	go build -o markban .
 
 lint:
 	go vet ./...

@@ -5,10 +5,17 @@ This is a simple Markdown-based Kanban board, inspired by [KanBanLess](https://g
 
 ## Usage
 
-Point the app at a directory with the proper structure, and it will open a web browser with a rendering of the board:
+To view the board in the terminal, use the `view` command, as shown below.
+If no directory is specified, the app searches for the repository root (looking for a `.git` directory), and then looks for a directory with a `board.toml` file, or a directory with "board" in the name.
 
 ```shell
-markban render project-board
+markban view project-board
+```
+
+To view the board in a web browser, use the `browse` verb, as shown below.
+
+```shell
+markban browse project-board
 ```
 
 

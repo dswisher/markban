@@ -13,19 +13,19 @@ import (
 	"github.com/dswisher/markban/internal/server"
 )
 
-var renderCmd = &cobra.Command{
-	Use:   "render [board-dir]",
-	Short: "Render a Kanban board and open it in the browser",
-	Long: `Render a Kanban board and open it in the browser.
+var browseCmd = &cobra.Command{
+	Use:   "browse [board-dir]",
+	Short: "Browse a Kanban board in your web browser",
+	Long: `Browse a Kanban board in your web browser.
 
 If board-dir is not specified, the command will attempt to auto-discover
 the board by finding the git root and looking for a subdirectory containing
 board.toml or with "board" in its name.`,
 	Args: cobra.MaximumNArgs(1),
-	RunE: runRender,
+	RunE: runBrowse,
 }
 
-func runRender(cmd *cobra.Command, args []string) error {
+func runBrowse(cmd *cobra.Command, args []string) error {
 	dir, err := resolveBoardDir(args)
 	if err != nil {
 		return err

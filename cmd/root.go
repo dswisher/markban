@@ -17,5 +17,5 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(renderCmd)
+	rootCmd.AddCommand(browseCmd)
 }
