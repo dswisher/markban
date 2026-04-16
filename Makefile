@@ -1,9 +1,9 @@
 
-.PHONY: test lint cover build browse install uninstall
+.PHONY: test lint cover build serve install uninstall
 
 
-browse:
-	go run . browse project-board
+serve:
+	go run . serve project-board
 
 build:
 	go build -o markban .

@@ -12,10 +12,10 @@ If no directory is specified, the app searches for the repository root (looking 
 markban view project-board
 ```
 
-To view the board in a web browser, use the `browse` verb, as shown below.
+To view the board in a web browser, use the `serve` verb, as shown below.
 
 ```shell
-markban browse project-board
+markban serve project-board
 ```
 
 

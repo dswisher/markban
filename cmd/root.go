@@ -17,7 +17,7 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(browseCmd)
+	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(viewCmd)
 
 	// Make "view" the default command when no subcommand is specified
