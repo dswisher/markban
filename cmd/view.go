@@ -11,6 +11,8 @@ import (
 	"github.com/dswisher/markban/internal/terminal"
 )
 
+var viewWidth int
+
 var viewCmd = &cobra.Command{
 	Use:   "view [board-dir]",
 	Short: "View a Kanban board in the terminal",
@@ -26,12 +28,16 @@ truncating cards and columns as needed.`,
 	RunE: runView,
 }
 
+func init() {
+	viewCmd.Flags().IntVarP(&viewWidth, "width", "w", 0, "Override the terminal width (0 = auto-detect)")
+}
+
 // Constants for layout
 const (
-	minColumnWidth   = 20  // Minimum width for a column
-	columnPadding    = 3   // Padding between columns
-	headerHeight     = 2   // Column header lines (name + separator)
-	blurbIndent      = 3   // Number of spaces to indent blurb
+	minColumnWidth = 20 // Minimum width for a column
+	columnPadding  = 3  // Padding between columns
+	headerHeight   = 2  // Column header lines (name + separator)
+	blurbIndent    = 3  // Number of spaces to indent blurb
 )
 
 func runView(cmd *cobra.Command, args []string) error {
@@ -54,6 +60,9 @@ func runView(cmd *cobra.Command, args []string) error {
 	}
 
 	screenWidth, screenHeight := terminal.Size()
+	if viewWidth > 0 {
+		screenWidth = viewWidth
+	}
 	renderBoard(b, screenWidth, screenHeight)
 
 	return nil
