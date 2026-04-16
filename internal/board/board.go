@@ -172,8 +172,27 @@ func loadTasks(dir string) ([]Task, error) {
 		tasks = append(tasks, task)
 	}
 
-	// Sort tasks by slug for consistent ordering
+	// Sort tasks by priority (high -> medium -> low -> other), then title, then slug
 	sort.Slice(tasks, func(i, j int) bool {
+		priorityOrder := map[string]int{
+			"high":   0,
+			"medium": 1,
+			"low":    2,
+		}
+		pi, oki := priorityOrder[strings.ToLower(tasks[i].Priority)]
+		if !oki {
+			pi = 3 // anything else comes last
+		}
+		pj, okj := priorityOrder[strings.ToLower(tasks[j].Priority)]
+		if !okj {
+			pj = 3 // anything else comes last
+		}
+		if pi != pj {
+			return pi < pj
+		}
+		if tasks[i].Title != tasks[j].Title {
+			return tasks[i].Title < tasks[j].Title
+		}
 		return tasks[i].Slug < tasks[j].Slug
 	})
 

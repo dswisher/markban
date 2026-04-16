@@ -1,3 +1,7 @@
+---
+color: blue
+priority: high
+---
 
 # Basic Rendering
 
