@@ -50,7 +50,7 @@ func TestRenderHTML(t *testing.T) {
 	b := makeTestBoard()
 
 	var buf strings.Builder
-	err := renderHTML(b, &buf)
+	err := renderHTML(b, &buf, true)
 	require.NoError(t, err)
 
 	assertBoardHTML(t, buf.String())
@@ -60,7 +60,7 @@ func TestRenderHTML_ContainsSSEScript(t *testing.T) {
 	b := makeTestBoard()
 
 	var buf strings.Builder
-	err := renderHTML(b, &buf)
+	err := renderHTML(b, &buf, true)
 	require.NoError(t, err)
 
 	assert.Contains(t, buf.String(), `new EventSource("/events")`)
@@ -83,7 +83,7 @@ func TestRenderHTML_HyphenToSpace(t *testing.T) {
 	}
 
 	var buf strings.Builder
-	err := renderHTML(b, &buf)
+	err := renderHTML(b, &buf, true)
 	require.NoError(t, err)
 
 	html := buf.String()
@@ -101,7 +101,7 @@ func TestRenderToDir(t *testing.T) {
 	dir := t.TempDir()
 	buildDir := filepath.Join(dir, ".build")
 
-	err := RenderToDir(b, buildDir)
+	err := RenderToDir(b, buildDir, true)
 	require.NoError(t, err)
 
 	indexPath := filepath.Join(buildDir, "index.html")

@@ -92,7 +92,7 @@ func TestSSEHandler_ReceivesReloadEvent(t *testing.T) {
 // rendered board content, without starting a network listener.
 func TestServer_Rebuild(t *testing.T) {
 	boardDir := makeTestBoardDir(t)
-	s := New(boardDir)
+	s := New(boardDir, true)
 
 	require.NoError(t, s.rebuild())
 
@@ -105,7 +105,7 @@ func TestServer_Rebuild(t *testing.T) {
 // TestServer_HandleIndex verifies that handleIndex serves the rendered HTML.
 func TestServer_HandleIndex(t *testing.T) {
 	boardDir := makeTestBoardDir(t)
-	s := New(boardDir)
+	s := New(boardDir, true)
 
 	require.NoError(t, s.rebuild())
 

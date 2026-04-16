@@ -17,6 +17,7 @@ type Task struct {
 	Blurb    string   // the line immediately after the title (if any)
 	Priority string   // from frontmatter (optional)
 	Tags     []string // from frontmatter (optional)
+	Color    string   // from frontmatter (optional): yellow, green, blue, red, orange, purple, magenta, cyan
 	Slug     string   // filename without .md extension
 }
 

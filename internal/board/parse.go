@@ -13,6 +13,7 @@ import (
 type frontmatter struct {
 	Priority string   `yaml:"priority"`
 	Tags     []string `yaml:"tags"`
+	Color    string   `yaml:"color"`
 }
 
 // ParseTask reads a single Markdown task file and returns a Task.
@@ -46,6 +47,7 @@ func ParseTask(path string) (Task, error) {
 		Blurb:    blurb,
 		Priority: fm.Priority,
 		Tags:     fm.Tags,
+		Color:    fm.Color,
 		Slug:     slug,
 	}, nil
 }

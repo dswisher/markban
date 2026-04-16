@@ -25,6 +25,7 @@ type Server struct {
 	boardDir string
 	buildDir string
 	port     int
+	useColor bool
 
 	mu      sync.Mutex
 	clients []chan struct{}
@@ -34,10 +35,12 @@ type Server struct {
 }
 
 // New creates a new Server for the given board directory.
-func New(boardDir string) *Server {
+// useColor determines whether to render card colors in the HTML.
+func New(boardDir string, useColor bool) *Server {
 	return &Server{
 		boardDir: boardDir,
 		buildDir: filepath.Join(boardDir, ".build"),
+		useColor: useColor,
 		ctx:      context.Background(),
 	}
 }
@@ -127,7 +130,7 @@ func (s *Server) rebuild() error {
 		return fmt.Errorf("loading board: %w", err)
 	}
 
-	if err := render.RenderToDir(b, s.buildDir); err != nil {
+	if err := render.RenderToDir(b, s.buildDir, s.useColor); err != nil {
 		return fmt.Errorf("rendering board: %w", err)
 	}
 

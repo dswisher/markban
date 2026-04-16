@@ -97,15 +97,15 @@ const boardTemplate = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <h1>Markban{{if .Name}} - {{.Name}}{{end}}</h1>
+  <h1>Markban{{if .Board.Name}} - {{.Board.Name}}{{end}}</h1>
   <div class="board">
-    {{- range .Columns}}
+    {{- range .Board.Columns}}
     <div class="column">
       <div class="column-header">{{.Name}}</div>
       <div class="cards">
         {{- if .Tasks}}
         {{- range .Tasks}}
-        <div class="card">
+        <div class="card" style="{{cardStyle .Color}}">
           <div class="card-title">{{.Title}}</div>
           {{- if .Blurb}}
           <div class="card-blurb">{{.Blurb}}</div>

@@ -13,6 +13,8 @@ import (
 	"github.com/dswisher/markban/internal/server"
 )
 
+var serveNoColor bool
+
 var serveCmd = &cobra.Command{
 	Use:   "serve [board-dir]",
 	Short: "Serve a Kanban board via HTTP and open it in your web browser",
@@ -23,6 +25,10 @@ the board by finding the git root and looking for a subdirectory containing
 board.toml or with "board" in its name.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runServe,
+}
+
+func init() {
+	serveCmd.Flags().BoolVar(&serveNoColor, "no-color", false, "Disable colored card backgrounds")
 }
 
 func runServe(cmd *cobra.Command, args []string) error {
@@ -44,7 +50,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := server.New(dir)
+	srv := server.New(dir, !serveNoColor)
 
 	// Start the server in a goroutine so we can open the browser once it's up.
 	runErr := make(chan error, 1)

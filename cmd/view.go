@@ -12,6 +12,7 @@ import (
 )
 
 var viewWidth int
+var viewNoColor bool
 
 var viewCmd = &cobra.Command{
 	Use:   "view [board-dir]",
@@ -30,6 +31,7 @@ truncating cards and columns as needed.`,
 
 func init() {
 	viewCmd.Flags().IntVarP(&viewWidth, "width", "w", 0, "Override the terminal width (0 = auto-detect)")
+	viewCmd.Flags().BoolVar(&viewNoColor, "no-color", false, "Disable colored output")
 }
 
 // Constants for layout
@@ -63,13 +65,15 @@ func runView(cmd *cobra.Command, args []string) error {
 	if viewWidth > 0 {
 		screenWidth = viewWidth
 	}
-	renderBoard(b, screenWidth, screenHeight)
+
+	useColor := !viewNoColor
+	renderBoard(b, screenWidth, screenHeight, useColor)
 
 	return nil
 }
 
 // renderBoard displays the board in the terminal, fitting it to the screen.
-func renderBoard(b *board.Board, screenWidth, screenHeight int) {
+func renderBoard(b *board.Board, screenWidth, screenHeight int, useColor bool) {
 	if len(b.Columns) == 0 {
 		fmt.Println("No columns found in board.")
 		return
@@ -92,11 +96,11 @@ func renderBoard(b *board.Board, screenWidth, screenHeight int) {
 	}
 
 	// Render the board
-	renderColumns(b.Columns, columnWidth, availableHeight, screenWidth)
+	renderColumns(b.Columns, columnWidth, availableHeight, screenWidth, useColor)
 }
 
 // renderColumns renders all columns side by side.
-func renderColumns(columns []board.Column, columnWidth, availableHeight, screenWidth int) {
+func renderColumns(columns []board.Column, columnWidth, availableHeight, screenWidth int, useColor bool) {
 	// Calculate how many columns fit on screen
 	maxColumns := (screenWidth + columnPadding) / (columnWidth + columnPadding)
 	if maxColumns < 1 {
@@ -141,7 +145,7 @@ func renderColumns(columns []board.Column, columnWidth, availableHeight, screenW
 	cardBuffers := make([][][]string, len(visibleColumns))
 	maxCards := 0
 	for i, col := range visibleColumns {
-		cards := buildCards(col.Tasks, columnWidth, availableHeight)
+		cards := buildCards(col.Tasks, columnWidth, availableHeight, useColor)
 		cardBuffers[i] = cards
 		if len(cards) > maxCards {
 			maxCards = len(cards)
@@ -235,7 +239,7 @@ func renderColumns(columns []board.Column, columnWidth, availableHeight, screenW
 
 // buildCards builds the card content for each task that fits.
 // Returns a slice of cards, where each card is a slice of lines.
-func buildCards(tasks []board.Task, columnWidth, availableHeight int) [][]string {
+func buildCards(tasks []board.Task, columnWidth, availableHeight int, useColor bool) [][]string {
 	var cards [][]string
 	linesUsed := 0
 
@@ -254,7 +258,7 @@ func buildCards(tasks []board.Task, columnWidth, availableHeight int) [][]string
 		remainingHeight := availableHeight - linesUsed
 
 		// Render this card
-		card := renderCard(task, columnWidth, remainingHeight, isLastCard)
+		card := renderCard(task, columnWidth, remainingHeight, isLastCard, useColor)
 		cardHeight := len(card)
 
 		// Check if card fits
@@ -271,37 +275,49 @@ func buildCards(tasks []board.Task, columnWidth, availableHeight int) [][]string
 }
 
 // renderCard renders a single card and returns its lines.
-func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bool) []string {
+func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bool, useColor bool) []string {
 	var lines []string
 
-	// Title (bold)
+	// Determine if we should use color and detect terminal mode
+	useCardColor := useColor && task.Color != ""
+
+	// Title (bold, with foreground color if specified)
 	if remainingHeight <= 0 {
 		return lines
 	}
-	titleLine := terminal.Bold(truncate(task.Title, columnWidth))
-	lines = append(lines, titleLine)
+	titleText := truncate(task.Title, columnWidth)
+	if useCardColor {
+		titleLine := terminal.CardForeground(terminal.Bold(titleText), task.Color)
+		lines = append(lines, titleLine)
+	} else {
+		titleLine := terminal.Bold(titleText)
+		lines = append(lines, titleLine)
+	}
 	remainingHeight--
 
 	// Blurb (indented, wrapped or truncated)
 	if task.Blurb != "" && remainingHeight > 0 {
 		blurbWidth := columnWidth - blurbIndent
 		if blurbWidth > 0 {
+			var blurbLines []string
 			if isLastCard {
 				// Last card: truncate if needed
-				blurbLines := renderBlurbTruncated(task.Blurb, blurbWidth, remainingHeight)
-				for _, blurbLine := range blurbLines {
-					lines = append(lines, strings.Repeat(" ", blurbIndent)+blurbLine)
-				}
+				blurbLines = renderBlurbTruncated(task.Blurb, blurbWidth, remainingHeight)
 			} else {
 				// Not last card: wrap fully
-				blurbLines := renderBlurbWrapped(task.Blurb, blurbWidth)
-				for _, blurbLine := range blurbLines {
-					if remainingHeight <= 0 {
-						break
-					}
-					lines = append(lines, strings.Repeat(" ", blurbIndent)+blurbLine)
-					remainingHeight--
+				blurbLines = renderBlurbWrapped(task.Blurb, blurbWidth)
+			}
+			for _, blurbLine := range blurbLines {
+				if remainingHeight <= 0 {
+					break
 				}
+				lineText := strings.Repeat(" ", blurbIndent) + blurbLine
+				if useCardColor {
+					// Apply foreground color to the blurb text as well
+					lineText = terminal.CardForeground(lineText, task.Color)
+				}
+				lines = append(lines, lineText)
+				remainingHeight--
 			}
 		}
 	}

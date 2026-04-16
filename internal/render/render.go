@@ -14,6 +14,7 @@ import (
 
 // RenderAndOpen executes the board template into a temporary HTML file and
 // opens it in the system default browser.
+// Card colors are enabled by default.
 func RenderAndOpen(b *board.Board) error {
 	f, err := os.CreateTemp("", "markban-*.html")
 	if err != nil {
@@ -21,7 +22,7 @@ func RenderAndOpen(b *board.Board) error {
 	}
 	defer f.Close()
 
-	if err := renderHTML(b, f); err != nil {
+	if err := renderHTML(b, f, true); err != nil {
 		return err
 	}
 
@@ -30,7 +31,8 @@ func RenderAndOpen(b *board.Board) error {
 
 // RenderToDir renders the board as HTML and writes it to <buildDir>/index.html,
 // creating the directory if it does not exist.
-func RenderToDir(b *board.Board, buildDir string) error {
+// useColor determines whether to render card background colors.
+func RenderToDir(b *board.Board, buildDir string, useColor bool) error {
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
 		return fmt.Errorf("creating build dir: %w", err)
 	}
@@ -42,17 +44,70 @@ func RenderToDir(b *board.Board, buildDir string) error {
 	}
 	defer f.Close()
 
-	return renderHTML(b, f)
+	return renderHTML(b, f, useColor)
+}
+
+// templateData holds the data passed to the HTML template.
+type templateData struct {
+	*board.Board
+	UseColor bool
 }
 
 // renderHTML executes the board template, writing the result to w.
-func renderHTML(b *board.Board, w io.Writer) error {
-	tmpl, err := template.New("board").Parse(boardTemplate)
+// useColor determines whether to render card background colors.
+func renderHTML(b *board.Board, w io.Writer, useColor bool) error {
+	tmpl, err := template.New("board").Funcs(template.FuncMap{
+		"cardStyle": cardStyleFunc(useColor),
+	}).Parse(boardTemplate)
 	if err != nil {
 		return err
 	}
 
-	return tmpl.Execute(w, b)
+	data := templateData{
+		Board:    b,
+		UseColor: useColor,
+	}
+
+	return tmpl.Execute(w, data)
+}
+
+// cardStyleFunc returns a function that generates CSS styles for cards.
+// If useColor is false, it returns an empty string.
+func cardStyleFunc(useColor bool) func(string) template.CSS {
+	return func(color string) template.CSS {
+		if !useColor || color == "" {
+			return ""
+		}
+		bg := colorToCSS(color)
+		if bg == "" {
+			return ""
+		}
+		return template.CSS(fmt.Sprintf("background-color: %s;", bg))
+	}
+}
+
+// colorToCSS maps color names to CSS color values.
+func colorToCSS(color string) string {
+	switch color {
+	case "yellow":
+		return "#fff9c4"
+	case "green":
+		return "#c8e6c9"
+	case "blue":
+		return "#bbdefb"
+	case "red":
+		return "#ffcdd2"
+	case "orange":
+		return "#ffe0b2"
+	case "purple":
+		return "#e1bee7"
+	case "magenta":
+		return "#f8bbd0"
+	case "cyan":
+		return "#b2ebf2"
+	default:
+		return ""
+	}
 }
 
 // OpenBrowser opens the given URL or file path in the system default browser.
