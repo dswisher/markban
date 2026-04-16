@@ -147,6 +147,7 @@ func loadConfig(rootDir string) Config {
 }
 
 // loadTasks reads all .md files from a directory and parses each into a Task.
+// Tasks are sorted alphabetically by slug (filename) for consistent display.
 func loadTasks(dir string) ([]Task, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -170,6 +171,11 @@ func loadTasks(dir string) ([]Task, error) {
 
 		tasks = append(tasks, task)
 	}
+
+	// Sort tasks by slug for consistent ordering
+	sort.Slice(tasks, func(i, j int) bool {
+		return tasks[i].Slug < tasks[j].Slug
+	})
 
 	return tasks, nil
 }

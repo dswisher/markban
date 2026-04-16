@@ -10,6 +10,7 @@ Start setting up a command line interface, so we can stay in the terminal.
 # Subtasks
 
 - [X] Rename the `render` verb to `browse`
-- [ ] Add a new `view` verb, which displays the board in the terminal, truncating as needed to fit
-- [ ] See if we can make `view` the "default" verb, so just typing `markban` will run it
+- [X] Add a new `view` verb, which displays the board in the terminal, truncating as needed to fit
+- [X] See if we can make `view` the "default" verb, so just typing `markban` will run it
+- [ ] Use color for the cards
 
