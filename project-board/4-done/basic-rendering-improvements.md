@@ -16,5 +16,4 @@ A few things to improve the usability of the tool and make it prettier.
 - [X] If the YAML front matter has a color, use that as the background for the card. There should be a small list of acceptable colors (light pastels: yellow, green, blue, red, orange, purple, magenta and cyan)
 - [X] If the YAML front matter has a priority, display "high", "medium", or "low" in the upper-right of the card in small, all-caps text
 - [X] Display the task slug in the lower right, in small italic text
-- [ ] If live reload connectivity is lost by the browser, display a message in the upper right of the page so the user is aware
 
