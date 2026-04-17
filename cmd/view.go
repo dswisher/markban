@@ -43,6 +43,12 @@ const (
 )
 
 func runView(cmd *cobra.Command, args []string) error {
+	// Enable ANSI escape sequence support on Windows
+	if err := terminal.EnableVirtualTerminalProcessing(); err != nil {
+		// Non-fatal: terminal may still work or user can use --no-color
+		// Log to stderr if needed, but silently continue for now
+	}
+
 	dir, err := resolveBoardDir(args)
 	if err != nil {
 		return err
@@ -289,9 +295,12 @@ func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bo
 	if useCardColor {
 		titleLine := terminal.CardForeground(terminal.Bold(titleText), task.Color)
 		lines = append(lines, titleLine)
-	} else {
+	} else if useColor {
+		// Use bold even without card color, but not when --no-color is specified
 		titleLine := terminal.Bold(titleText)
 		lines = append(lines, titleLine)
+	} else {
+		lines = append(lines, titleText)
 	}
 	remainingHeight--
 
