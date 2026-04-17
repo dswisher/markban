@@ -322,6 +322,25 @@ func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bo
 		}
 	}
 
+	// Slug (right-aligned, on a line by itself, wrapped in square brackets)
+	if remainingHeight > 0 && task.Slug != "" {
+		// Account for the brackets in width calculation
+		maxSlugWidth := columnWidth - 2
+		if maxSlugWidth < 0 {
+			maxSlugWidth = 0
+		}
+		slugWithBrackets := "[" + truncate(task.Slug, maxSlugWidth) + "]"
+		// Right-align the slug
+		visibleLen := len(slugWithBrackets)
+		if visibleLen < columnWidth {
+			slugWithBrackets = strings.Repeat(" ", columnWidth-visibleLen) + slugWithBrackets
+		}
+		if useCardColor {
+			slugWithBrackets = terminal.CardForeground(slugWithBrackets, task.Color)
+		}
+		lines = append(lines, slugWithBrackets)
+	}
+
 	return lines
 }
 

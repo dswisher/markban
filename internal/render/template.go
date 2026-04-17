@@ -87,6 +87,28 @@ const boardTemplate = `<!DOCTYPE html>
       line-height: 1.5;
     }
 
+    .card-priority {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #718096;
+      text-align: right;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.5rem;
+    }
+
+    .card-slug {
+      font-size: 0.7rem;
+      font-style: italic;
+      color: #a0aec0;
+    }
+
     .empty {
       font-size: 0.8rem;
       color: #a0aec0;
@@ -119,14 +141,20 @@ const boardTemplate = `<!DOCTYPE html>
       <div class="column-header">{{.Name}}</div>
       <div class="cards">
         {{- if .Tasks}}
-        {{- range .Tasks}}
-        <div class="card" style="{{cardStyle .Color}}">
-          <div class="card-title">{{.Title}}</div>
-          {{- if .Blurb}}
-          <div class="card-blurb">{{.Blurb}}</div>
-          {{- end}}
-        </div>
-        {{- end}}
+         {{- range .Tasks}}
+         <div class="card" style="{{cardStyle .Color}}">
+           {{- if .Priority}}
+           <div class="card-priority">{{.Priority}}</div>
+           {{- end}}
+           <div class="card-title">{{.Title}}</div>
+           {{- if .Blurb}}
+           <div class="card-blurb">{{.Blurb}}</div>
+           {{- end}}
+            <div class="card-footer">
+              <div class="card-slug">[{{.Slug}}]</div>
+            </div>
+         </div>
+         {{- end}}
         {{- else}}
         <div class="empty">No tasks</div>
         {{- end}}
