@@ -322,23 +322,48 @@ func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bo
 		}
 	}
 
-	// Slug (right-aligned, on a line by itself, wrapped in square brackets)
-	if remainingHeight > 0 && task.Slug != "" {
-		// Account for the brackets in width calculation
-		maxSlugWidth := columnWidth - 2
-		if maxSlugWidth < 0 {
-			maxSlugWidth = 0
+	// Priority and Slug (on the same line, indented like the blurb)
+	if remainingHeight > 0 && (task.Slug != "" || task.Priority != "") {
+		var leftPart, rightPart string
+
+		// Build priority part (left side) with square brackets
+		if task.Priority != "" {
+			leftPart = "[" + task.Priority + "]"
 		}
-		slugWithBrackets := "[" + truncate(task.Slug, maxSlugWidth) + "]"
-		// Right-align the slug
-		visibleLen := len(slugWithBrackets)
-		if visibleLen < columnWidth {
-			slugWithBrackets = strings.Repeat(" ", columnWidth-visibleLen) + slugWithBrackets
+
+		// Build slug part (right side) with square brackets
+		if task.Slug != "" {
+			// Calculate available width for slug, accounting for indent, left part, and spacing
+			minSpacing := 1                                                                // Minimum space between priority and slug
+			availableForSlug := columnWidth - blurbIndent - len(leftPart) - minSpacing - 2 // -2 for brackets
+			if availableForSlug < 0 {
+				availableForSlug = 0
+			}
+			slugText := truncate(task.Slug, availableForSlug)
+			rightPart = "[" + slugText + "]"
 		}
+
+		// Combine parts with spacing
+		var combined string
+		if leftPart != "" && rightPart != "" {
+			spacing := columnWidth - blurbIndent - len(leftPart) - len(rightPart)
+			if spacing < 1 {
+				spacing = 1
+			}
+			combined = leftPart + strings.Repeat(" ", spacing) + rightPart
+		} else if leftPart != "" {
+			combined = leftPart
+		} else {
+			combined = rightPart
+		}
+
+		// Apply indent
+		combined = strings.Repeat(" ", blurbIndent) + combined
+
 		if useCardColor {
-			slugWithBrackets = terminal.CardForeground(slugWithBrackets, task.Color)
+			combined = terminal.CardForeground(combined, task.Color)
 		}
-		lines = append(lines, slugWithBrackets)
+		lines = append(lines, combined)
 	}
 
 	return lines

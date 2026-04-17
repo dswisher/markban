@@ -2,6 +2,8 @@
 
 ## Coding Conventions
 
+Any code changes must pass a `make lint` without any errors
+
 This uses Go 1.25+, and should use the more modern conventions these later versions provide.
 
 Unit testing should test critical functionality, not necessarily aim for 100% coverage, to keep tests easy to maintain.
