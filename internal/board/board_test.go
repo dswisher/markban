@@ -84,3 +84,52 @@ func TestLoadBoard_WithoutConfig(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "", board.Name)
 }
+
+func TestLoadBoard_ExcludesArchiveDir(t *testing.T) {
+	board, err := LoadBoard("testdata/board-with-archive")
+	require.NoError(t, err)
+
+	// Should have 2 columns (backlog, todo), not 3 (archive excluded)
+	require.Len(t, board.Columns, 2)
+	assert.Equal(t, "backlog", board.Columns[0].Name)
+	assert.Equal(t, "todo", board.Columns[1].Name)
+}
+
+func TestLoadArchive(t *testing.T) {
+	tasks, err := LoadArchive("testdata/board-with-archive")
+	require.NoError(t, err)
+	require.Len(t, tasks, 2)
+
+	// Tasks should be sorted by title
+	assert.Equal(t, "Archived Task One", tasks[0].Title)
+	assert.Equal(t, "Archived Task Two", tasks[1].Title)
+}
+
+func TestLoadArchive_NoArchiveDir(t *testing.T) {
+	tasks, err := LoadArchive("testdata/board")
+	require.NoError(t, err)
+	assert.Nil(t, tasks)
+}
+
+func TestIsArchiveDir(t *testing.T) {
+	tests := []struct {
+		dirName string
+		want    bool
+	}{
+		{"archive", true},
+		{"99-archive", true},
+		{"5-archive", true},
+		{"Archive", true},
+		{"ARCHIVE", true},
+		{"backlog", false},
+		{"done", false},
+		{"archived", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.dirName, func(t *testing.T) {
+			got := isArchiveDir(tt.dirName)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

@@ -73,6 +73,7 @@ func (s *Server) Run(ctx context.Context) error {
 	// Set up HTTP handlers.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/events", s.handleSSE)
+	mux.HandleFunc("/archive", s.handleArchive)
 	mux.HandleFunc("/", s.handleIndex)
 
 	// Find a free port on localhost only (avoids macOS firewall prompt).
@@ -130,8 +131,20 @@ func (s *Server) rebuild() error {
 		return fmt.Errorf("loading board: %w", err)
 	}
 
-	if err := render.RenderToDir(b, s.buildDir, s.useColor); err != nil {
+	archiveTasks, err := board.LoadArchive(s.boardDir)
+	if err != nil {
+		return fmt.Errorf("loading archive: %w", err)
+	}
+	hasArchive := len(archiveTasks) > 0
+
+	if err := render.RenderToDir(b, s.buildDir, s.useColor, hasArchive); err != nil {
 		return fmt.Errorf("rendering board: %w", err)
+	}
+
+	if hasArchive {
+		if err := render.RenderArchive(archiveTasks, s.buildDir); err != nil {
+			return fmt.Errorf("rendering archive: %w", err)
+		}
 	}
 
 	return nil
@@ -276,6 +289,11 @@ func (s *Server) removeClient(ch chan struct{}) {
 // browsers (e.g. Chrome) mishandle.
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filepath.Join(s.buildDir, "index.html"))
+}
+
+// handleArchive serves archive.html for requests to /archive.
+func (s *Server) handleArchive(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, filepath.Join(s.buildDir, "archive.html"))
 }
 
 // handleSSE is the HTTP handler for the /events SSE endpoint.

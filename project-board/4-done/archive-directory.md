@@ -1,5 +1,5 @@
 ---
-color: blue
+color: yellow
 priority: low
 ---
 

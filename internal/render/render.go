@@ -22,7 +22,7 @@ func RenderAndOpen(b *board.Board) error {
 	}
 	defer f.Close()
 
-	if err := renderHTML(b, f, true); err != nil {
+	if err := renderHTML(b, f, true, false); err != nil {
 		return err
 	}
 
@@ -32,7 +32,7 @@ func RenderAndOpen(b *board.Board) error {
 // RenderToDir renders the board as HTML and writes it to <buildDir>/index.html,
 // creating the directory if it does not exist.
 // useColor determines whether to render card background colors.
-func RenderToDir(b *board.Board, buildDir string, useColor bool) error {
+func RenderToDir(b *board.Board, buildDir string, useColor bool, hasArchive bool) error {
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
 		return fmt.Errorf("creating build dir: %w", err)
 	}
@@ -44,18 +44,40 @@ func RenderToDir(b *board.Board, buildDir string, useColor bool) error {
 	}
 	defer f.Close()
 
-	return renderHTML(b, f, useColor)
+	return renderHTML(b, f, useColor, hasArchive)
+}
+
+// RenderArchive renders the archive page as HTML and writes it to <buildDir>/archive.html.
+func RenderArchive(tasks []board.Task, buildDir string) error {
+	if err := os.MkdirAll(buildDir, 0o755); err != nil {
+		return fmt.Errorf("creating build dir: %w", err)
+	}
+
+	archivePath := filepath.Join(buildDir, "archive.html")
+	f, err := os.Create(archivePath)
+	if err != nil {
+		return fmt.Errorf("creating archive.html: %w", err)
+	}
+	defer f.Close()
+
+	return renderArchiveHTML(tasks, f)
 }
 
 // templateData holds the data passed to the HTML template.
 type templateData struct {
 	*board.Board
-	UseColor bool
+	UseColor   bool
+	HasArchive bool
+}
+
+// archiveData holds the data passed to the archive HTML template.
+type archiveData struct {
+	Tasks []board.Task
 }
 
 // renderHTML executes the board template, writing the result to w.
 // useColor determines whether to render card background colors.
-func renderHTML(b *board.Board, w io.Writer, useColor bool) error {
+func renderHTML(b *board.Board, w io.Writer, useColor bool, hasArchive bool) error {
 	tmpl, err := template.New("board").Funcs(template.FuncMap{
 		"cardStyle": cardStyleFunc(useColor),
 	}).Parse(boardTemplate)
@@ -64,8 +86,23 @@ func renderHTML(b *board.Board, w io.Writer, useColor bool) error {
 	}
 
 	data := templateData{
-		Board:    b,
-		UseColor: useColor,
+		Board:      b,
+		UseColor:   useColor,
+		HasArchive: hasArchive,
+	}
+
+	return tmpl.Execute(w, data)
+}
+
+// renderArchiveHTML executes the archive template, writing the result to w.
+func renderArchiveHTML(tasks []board.Task, w io.Writer) error {
+	tmpl, err := template.New("archive").Parse(archiveTemplate)
+	if err != nil {
+		return err
+	}
+
+	data := archiveData{
+		Tasks: tasks,
 	}
 
 	return tmpl.Execute(w, data)

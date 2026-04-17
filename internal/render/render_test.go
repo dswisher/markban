@@ -50,7 +50,7 @@ func TestRenderHTML(t *testing.T) {
 	b := makeTestBoard()
 
 	var buf strings.Builder
-	err := renderHTML(b, &buf, true)
+	err := renderHTML(b, &buf, true, false)
 	require.NoError(t, err)
 
 	assertBoardHTML(t, buf.String())
@@ -60,7 +60,7 @@ func TestRenderHTML_ContainsSSEScript(t *testing.T) {
 	b := makeTestBoard()
 
 	var buf strings.Builder
-	err := renderHTML(b, &buf, true)
+	err := renderHTML(b, &buf, true, false)
 	require.NoError(t, err)
 
 	assert.Contains(t, buf.String(), `new EventSource("/events")`)
@@ -83,7 +83,7 @@ func TestRenderHTML_HyphenToSpace(t *testing.T) {
 	}
 
 	var buf strings.Builder
-	err := renderHTML(b, &buf, true)
+	err := renderHTML(b, &buf, true, false)
 	require.NoError(t, err)
 
 	html := buf.String()
@@ -101,7 +101,7 @@ func TestRenderToDir(t *testing.T) {
 	dir := t.TempDir()
 	buildDir := filepath.Join(dir, ".build")
 
-	err := RenderToDir(b, buildDir, true)
+	err := RenderToDir(b, buildDir, true, false)
 	require.NoError(t, err)
 
 	indexPath := filepath.Join(buildDir, "index.html")
@@ -109,4 +109,63 @@ func TestRenderToDir(t *testing.T) {
 	require.NoError(t, err)
 
 	assertBoardHTML(t, string(data))
+}
+
+func TestRenderHTML_HasArchiveLink(t *testing.T) {
+	b := makeTestBoard()
+
+	var buf strings.Builder
+	err := renderHTML(b, &buf, true, true)
+	require.NoError(t, err)
+
+	assert.Contains(t, buf.String(), `href="/archive"`)
+	assert.Contains(t, buf.String(), "Archive")
+}
+
+func TestRenderHTML_NoArchiveLink(t *testing.T) {
+	b := makeTestBoard()
+
+	var buf strings.Builder
+	err := renderHTML(b, &buf, true, false)
+	require.NoError(t, err)
+
+	assert.NotContains(t, buf.String(), `href="/archive"`)
+}
+
+func TestRenderArchive(t *testing.T) {
+	tasks := []board.Task{
+		{Title: "Old Task", Blurb: "This was archived."},
+		{Title: "Another Old Task"},
+	}
+
+	dir := t.TempDir()
+	buildDir := filepath.Join(dir, ".build")
+
+	err := RenderArchive(tasks, buildDir)
+	require.NoError(t, err)
+
+	archivePath := filepath.Join(buildDir, "archive.html")
+	data, err := os.ReadFile(archivePath)
+	require.NoError(t, err)
+
+	html := string(data)
+	assert.Contains(t, html, "Old Task")
+	assert.Contains(t, html, "This was archived.")
+	assert.Contains(t, html, "Another Old Task")
+	assert.Contains(t, html, `href="/"`)
+	assert.Contains(t, html, "Archive")
+}
+
+func TestRenderArchive_Empty(t *testing.T) {
+	dir := t.TempDir()
+	buildDir := filepath.Join(dir, ".build")
+
+	err := RenderArchive(nil, buildDir)
+	require.NoError(t, err)
+
+	archivePath := filepath.Join(buildDir, "archive.html")
+	data, err := os.ReadFile(archivePath)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(data), "No archived tasks")
 }

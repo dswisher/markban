@@ -85,6 +85,7 @@ func inferOrder(name string) int {
 // LoadBoard reads rootDir, discovers column subdirectories and their task
 // files, and returns a fully populated Board sorted by column order.
 // If a board.toml file exists in rootDir, it is loaded for configuration.
+// The archive directory (named "archive") is excluded from columns.
 func LoadBoard(rootDir string) (*Board, error) {
 	config := loadConfig(rootDir)
 
@@ -101,6 +102,10 @@ func LoadBoard(rootDir string) (*Board, error) {
 		}
 		// Skip hidden directories.
 		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+		// Skip archive directory.
+		if isArchiveDir(entry.Name()) {
 			continue
 		}
 
@@ -130,6 +135,33 @@ func LoadBoard(rootDir string) (*Board, error) {
 	})
 
 	return &Board{Name: config.Name, Columns: columns}, nil
+}
+
+// isArchiveDir returns true if the directory name (after stripping numeric
+// prefix) is "archive".
+func isArchiveDir(dirName string) bool {
+	name, _ := columnName(dirName)
+	return strings.EqualFold(name, "archive")
+}
+
+// LoadArchive reads the archive directory (named "archive") under rootDir
+// and returns all tasks found within. Returns nil if no archive directory exists.
+func LoadArchive(rootDir string) ([]Task, error) {
+	entries, err := os.ReadDir(rootDir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		if isArchiveDir(entry.Name()) {
+			return loadTasks(filepath.Join(rootDir, entry.Name()))
+		}
+	}
+
+	return nil, nil
 }
 
 // loadConfig reads board.toml from rootDir if it exists.

@@ -25,6 +25,10 @@ install:
 	@echo "Installed markban to $(shell go env GOPATH)/bin/markban"
 
 uninstall:
-	@rm -f "$(shell go env GOPATH)/bin/markban"
-	@echo "Uninstalled markban from $(shell go env GOPATH)/bin"
+	@if [ -f "$(shell go env GOPATH)/bin/markban" ]; then \
+		rm -f "$(shell go env GOPATH)/bin/markban"; \
+		echo "Uninstalled markban from $(shell go env GOPATH)/bin"; \
+	else \
+		echo "markban not installed"; \
+	fi
 
