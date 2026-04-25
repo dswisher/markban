@@ -126,7 +126,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 // rebuild loads the board from disk and renders it to the build directory.
 func (s *Server) rebuild() error {
-	b, err := board.LoadBoard(s.boardDir)
+	b, _, err := board.LoadBoard(s.boardDir)
 	if err != nil {
 		return fmt.Errorf("loading board: %w", err)
 	}

@@ -225,7 +225,9 @@ const boardTemplate = `<!DOCTYPE html>
            <div class="card-blurb">{{.Blurb}}</div>
            {{- end}}
             <div class="card-footer">
-              {{- if .Priority}}
+              {{- if not .Done.IsZero}}
+              <div class="card-priority">[{{.Done.Format "2006-01-02"}}]</div>
+              {{- else if .Priority}}
               <div class="card-priority">[{{.Priority}}]</div>
               {{- end}}
               <div class="card-slug">[{{.Slug}}]</div>

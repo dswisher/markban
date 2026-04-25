@@ -89,15 +89,17 @@ func inferOrder(name string) int {
 // files, and returns a fully populated Board sorted by column order.
 // If a board.toml file exists in rootDir, it is loaded for configuration.
 // The archive directory (named "archive") is excluded from columns.
-func LoadBoard(rootDir string) (*Board, error) {
+// Returns the board, the count of warnings found, and any error.
+func LoadBoard(rootDir string) (*Board, int, error) {
 	config := loadConfig(rootDir)
 
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	var columns []Column
+	warningCount := 0
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -116,12 +118,12 @@ func LoadBoard(rootDir string) (*Board, error) {
 
 		tasks, err := loadTasks(filepath.Join(rootDir, entry.Name()))
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		// Apply special sorting for "done" columns
 		if isDoneColumn(name) {
-			sortDoneTasks(tasks, rootDir, entry.Name())
+			warningCount += sortDoneTasks(tasks, rootDir, entry.Name())
 		}
 
 		if order == -1 {
@@ -142,7 +144,7 @@ func LoadBoard(rootDir string) (*Board, error) {
 		return columns[i].Name < columns[j].Name
 	})
 
-	return &Board{Name: config.Name, Columns: columns}, nil
+	return &Board{Name: config.Name, Columns: columns}, warningCount, nil
 }
 
 // isArchiveDir returns true if the directory name (after stripping numeric
@@ -252,12 +254,15 @@ func isDoneColumn(name string) bool {
 }
 
 // sortDoneTasks sorts tasks in a done column by completion date (most recent first).
-// Tasks without a done date are logged as warnings and sorted to the end.
+// Tasks without a done date are counted as warnings, logged, and sorted to the end.
 // Secondary sort is by priority, then slug.
-func sortDoneTasks(tasks []Task, rootDir, columnName string) {
-	// Check for tasks without done dates and log warnings
+// Returns the count of warnings (tasks without done dates).
+func sortDoneTasks(tasks []Task, rootDir, columnName string) int {
+	// Count and log tasks without done dates as warnings
+	warningCount := 0
 	for _, task := range tasks {
 		if task.Done.IsZero() {
+			warningCount++
 			log.Printf("Warning: Task %q in column %q/%s has no done date", task.Slug, rootDir, columnName)
 		}
 	}
@@ -302,4 +307,6 @@ func sortDoneTasks(tasks []Task, rootDir, columnName string) {
 		// Finally sort by slug
 		return tasks[i].Slug < tasks[j].Slug
 	})
+
+	return warningCount
 }

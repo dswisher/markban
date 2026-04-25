@@ -62,7 +62,7 @@ func runView(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%q is not a directory", dir)
 	}
 
-	b, err := board.LoadBoard(dir)
+	b, warningCount, err := board.LoadBoard(dir)
 	if err != nil {
 		return fmt.Errorf("loading board: %w", err)
 	}
@@ -73,13 +73,13 @@ func runView(cmd *cobra.Command, args []string) error {
 	}
 
 	useColor := !viewNoColor
-	renderBoard(b, screenWidth, screenHeight, useColor)
+	renderBoard(b, screenWidth, screenHeight, useColor, warningCount)
 
 	return nil
 }
 
 // renderBoard displays the board in the terminal, fitting it to the screen.
-func renderBoard(b *board.Board, screenWidth, screenHeight int, useColor bool) {
+func renderBoard(b *board.Board, screenWidth, screenHeight int, useColor bool, warningCount int) {
 	if len(b.Columns) == 0 {
 		fmt.Println("No columns found in board.")
 		return
@@ -96,13 +96,26 @@ func renderBoard(b *board.Board, screenWidth, screenHeight int, useColor bool) {
 	}
 
 	// Calculate available height for cards (excluding header)
-	availableHeight := screenHeight - headerHeight
+	// Reserve lines at the bottom when there are warnings to prevent scrolling:
+	// - 1 line for the log output
+	// - 1 line for possible overflow message
+	// - 1 line for the warning count message
+	reservedLines := 0
+	if warningCount > 0 {
+		reservedLines = 3
+	}
+	availableHeight := screenHeight - headerHeight - reservedLines
 	if availableHeight < 1 {
 		availableHeight = 1
 	}
 
 	// Render the board
 	renderColumns(b.Columns, columnWidth, availableHeight, screenWidth, useColor)
+
+	// Print warning message at the bottom if there were warnings
+	if warningCount > 0 {
+		fmt.Printf("(there were %d warnings, you may need to scroll up to see them)\n", warningCount)
+	}
 }
 
 // renderColumns renders all columns side by side.
@@ -332,11 +345,14 @@ func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bo
 	}
 
 	// Priority and Slug (on the same line, indented like the blurb)
-	if remainingHeight > 0 && (task.Slug != "" || task.Priority != "") {
+	if remainingHeight > 0 && (task.Slug != "" || task.Priority != "" || !task.Done.IsZero()) {
 		var leftPart, rightPart string
 
 		// Build priority part (left side) with square brackets
-		if task.Priority != "" {
+		// If the card has a done date, display that instead of priority
+		if !task.Done.IsZero() {
+			leftPart = "[" + task.Done.Format("2006-01-02") + "]"
+		} else if task.Priority != "" {
 			leftPart = "[" + task.Priority + "]"
 		}
 

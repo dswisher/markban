@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoadBoard_ColumnOrder(t *testing.T) {
-	board, err := LoadBoard("testdata/board")
+	board, _, err := LoadBoard("testdata/board")
 	require.NoError(t, err)
 
 	require.Len(t, board.Columns, 4)
@@ -30,7 +30,7 @@ func TestLoadBoard_ColumnOrder(t *testing.T) {
 }
 
 func TestLoadBoard_TasksLoaded(t *testing.T) {
-	board, err := LoadBoard("testdata/board")
+	board, _, err := LoadBoard("testdata/board")
 	require.NoError(t, err)
 
 	// backlog has one task
@@ -42,7 +42,7 @@ func TestLoadBoard_TasksLoaded(t *testing.T) {
 }
 
 func TestLoadBoard_SkipsHiddenDirs(t *testing.T) {
-	board, err := LoadBoard("testdata/board")
+	board, _, err := LoadBoard("testdata/board")
 	require.NoError(t, err)
 
 	for _, col := range board.Columns {
@@ -51,7 +51,7 @@ func TestLoadBoard_SkipsHiddenDirs(t *testing.T) {
 }
 
 func TestLoadBoard_InvalidDir(t *testing.T) {
-	_, err := LoadBoard("testdata/nonexistent")
+	_, _, err := LoadBoard("testdata/nonexistent")
 	assert.Error(t, err)
 }
 
@@ -74,19 +74,19 @@ func TestColumnName_HyphenToSpace(t *testing.T) {
 }
 
 func TestLoadBoard_WithConfig(t *testing.T) {
-	board, err := LoadBoard("testdata/board-with-config")
+	board, _, err := LoadBoard("testdata/board-with-config")
 	require.NoError(t, err)
 	assert.Equal(t, "Test Project", board.Name)
 }
 
 func TestLoadBoard_WithoutConfig(t *testing.T) {
-	board, err := LoadBoard("testdata/board")
+	board, _, err := LoadBoard("testdata/board")
 	require.NoError(t, err)
 	assert.Equal(t, "", board.Name)
 }
 
 func TestLoadBoard_ExcludesArchiveDir(t *testing.T) {
-	board, err := LoadBoard("testdata/board-with-archive")
+	board, _, err := LoadBoard("testdata/board-with-archive")
 	require.NoError(t, err)
 
 	// Should have 2 columns (backlog, todo), not 3 (archive excluded)
@@ -159,7 +159,7 @@ func TestIsDoneColumn(t *testing.T) {
 }
 
 func TestLoadBoard_DoneColumnSortByDate(t *testing.T) {
-	board, err := LoadBoard("testdata/board-with-done")
+	board, _, err := LoadBoard("testdata/board-with-done")
 	require.NoError(t, err)
 
 	// Find the done column
