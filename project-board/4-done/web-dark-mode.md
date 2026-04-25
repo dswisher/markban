@@ -1,6 +1,7 @@
 ---
 color: blue
 priority: medium
+done: 2026-04-25
 ---
 
 # Dark Mode for Web View

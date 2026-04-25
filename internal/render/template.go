@@ -127,6 +127,87 @@ const boardTemplate = `<!DOCTYPE html>
       color: #2d3748;
       text-decoration: underline;
     }
+
+    /* Colored cards always use dark text for readability */
+    .card-colored .card-title {
+      color: #2d3748;
+    }
+
+    .card-colored .card-blurb {
+      color: #4a5568;
+    }
+
+    .card-colored .card-slug,
+    .card-colored .card-priority {
+      color: #718096;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #1a202c;
+        color: #e2e8f0;
+      }
+
+      h1 {
+        color: #a0aec0;
+      }
+
+      .column {
+        background: #2d3748;
+      }
+
+      .column-header {
+        color: #a0aec0;
+        border-bottom-color: #4a5568;
+      }
+
+      .card {
+        background: #2d3748;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      .card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .card-title {
+        color: #e2e8f0;
+      }
+
+      .card-blurb {
+        color: #a0aec0;
+      }
+
+      .card-slug, .card-priority {
+        color: #718096;
+      }
+
+      .empty {
+        color: #718096;
+      }
+
+      .archive-link {
+        color: #a0aec0;
+      }
+
+      .archive-link:hover {
+        color: #e2e8f0;
+      }
+
+      /* Colored cards keep dark text even in dark mode */
+      .card-colored .card-title {
+        color: #2d3748;
+      }
+
+      .card-colored .card-blurb {
+        color: #4a5568;
+      }
+
+      .card-colored .card-slug,
+      .card-colored .card-priority {
+        color: #718096;
+      }
+    }
   </style>
 </head>
 <body>
@@ -138,7 +219,7 @@ const boardTemplate = `<!DOCTYPE html>
       <div class="cards">
         {{- if .Tasks}}
          {{- range .Tasks}}
-         <div class="card" style="{{cardStyle .Color}}">
+         <div class="card{{if .Color}} card-colored{{end}}" style="{{cardStyle .Color}}">
            <div class="card-title">{{.Title}}</div>
            {{- if .Blurb}}
            <div class="card-blurb">{{.Blurb}}</div>
@@ -239,6 +320,42 @@ const archiveTemplate = `<!DOCTYPE html>
     .back-link:hover {
       color: #2d3748;
       text-decoration: underline;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #1a202c;
+        color: #e2e8f0;
+      }
+
+      h1 {
+        color: #a0aec0;
+      }
+
+      .archive-item {
+        background: #2d3748;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      .archive-title {
+        color: #e2e8f0;
+      }
+
+      .archive-blurb {
+        color: #a0aec0;
+      }
+
+      .empty {
+        color: #718096;
+      }
+
+      .back-link {
+        color: #a0aec0;
+      }
+
+      .back-link:hover {
+        color: #e2e8f0;
+      }
     }
   </style>
 </head>
