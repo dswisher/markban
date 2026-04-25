@@ -1,6 +1,7 @@
 ---
 color: yellow
 priority: low
+done: 2026-04-17
 ---
 
 # Archive Directory

@@ -1,6 +1,7 @@
 ---
 color: yellow
 priority: medium
+done: 2026-04-16
 ---
 
 # Rendering Improvements
