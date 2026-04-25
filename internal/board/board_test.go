@@ -133,3 +133,59 @@ func TestIsArchiveDir(t *testing.T) {
 		})
 	}
 }
+
+func TestIsDoneColumn(t *testing.T) {
+	// Note: isDoneColumn receives the name AFTER columnName strips the numeric prefix
+	// So "4-done" becomes "done" before isDoneColumn is called
+	tests := []struct {
+		name string
+		want bool
+	}{
+		{"done", true},
+		{"Done", true},
+		{"DONE", true},
+		{"Done Tasks", false}, // normalizes to "done-tasks", not "done"
+		{"backlog", false},
+		{"todo", false},
+		{"in progress", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isDoneColumn(tt.name)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestLoadBoard_DoneColumnSortByDate(t *testing.T) {
+	board, err := LoadBoard("testdata/board-with-done")
+	require.NoError(t, err)
+
+	// Find the done column
+	var doneCol *Column
+	for i := range board.Columns {
+		if board.Columns[i].Name == "done" {
+			doneCol = &board.Columns[i]
+			break
+		}
+	}
+	require.NotNil(t, doneCol, "should have a done column")
+	require.Len(t, doneCol.Tasks, 4, "done column should have 4 tasks")
+
+	// Expected order (most recent first):
+	// 1. recent-task (2026-04-20, medium)
+	// 2. same-date-no-priority (2026-04-20, no priority - comes after medium)
+	// 3. older-task (2026-04-15, high)
+	// 4. no-date-task (no date - sorted to end)
+	assert.Equal(t, "recent-task", doneCol.Tasks[0].Slug)
+	assert.Equal(t, "same-date-no-priority", doneCol.Tasks[1].Slug)
+	assert.Equal(t, "older-task", doneCol.Tasks[2].Slug)
+	assert.Equal(t, "no-date-task", doneCol.Tasks[3].Slug)
+
+	// Verify dates
+	assert.Equal(t, "2026-04-20", doneCol.Tasks[0].Done.Format("2006-01-02"))
+	assert.Equal(t, "2026-04-20", doneCol.Tasks[1].Done.Format("2006-01-02"))
+	assert.Equal(t, "2026-04-15", doneCol.Tasks[2].Done.Format("2006-01-02"))
+	assert.True(t, doneCol.Tasks[3].Done.IsZero())
+}

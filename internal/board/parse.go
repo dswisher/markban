@@ -5,15 +5,39 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
 // frontmatter holds the optional YAML fields at the top of a task file.
 type frontmatter struct {
-	Priority string   `yaml:"priority"`
-	Tags     []string `yaml:"tags"`
-	Color    string   `yaml:"color"`
+	Priority string    `yaml:"priority"`
+	Tags     []string  `yaml:"tags"`
+	Color    string    `yaml:"color"`
+	Done     yamlDone  `yaml:"done"`
+}
+
+// yamlDone is a custom type to handle optional date parsing from YAML
+type yamlDone time.Time
+
+// UnmarshalYAML implements custom YAML unmarshaling for date fields
+func (d *yamlDone) UnmarshalYAML(node *yaml.Node) error {
+	if node.Tag == "!!null" {
+		*d = yamlDone(time.Time{})
+		return nil
+	}
+	var s string
+	if err := node.Decode(&s); err != nil {
+		return err
+	}
+	// Try parsing as date (YYYY-MM-DD format)
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return err
+	}
+	*d = yamlDone(t)
+	return nil
 }
 
 // ParseTask reads a single Markdown task file and returns a Task.
@@ -48,6 +72,7 @@ func ParseTask(path string) (Task, error) {
 		Priority: fm.Priority,
 		Tags:     fm.Tags,
 		Color:    fm.Color,
+		Done:     time.Time(fm.Done),
 		Slug:     slug,
 	}, nil
 }

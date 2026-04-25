@@ -1,24 +1,27 @@
 package board
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
 
 // Task represents a single Kanban card, parsed from a Markdown file.
 type Task struct {
-	Title    string   // from the first # heading
-	Blurb    string   // the line immediately after the title (if any)
-	Priority string   // from frontmatter (optional)
-	Tags     []string // from frontmatter (optional)
-	Color    string   // from frontmatter (optional): yellow, green, blue, red, orange, purple, magenta, cyan
-	Slug     string   // filename without .md extension
+	Title    string    // from the first # heading
+	Blurb    string    // the line immediately after the title (if any)
+	Priority string    // from frontmatter (optional)
+	Tags     []string  // from frontmatter (optional)
+	Color    string    // from frontmatter (optional): yellow, green, blue, red, orange, purple, magenta, cyan
+	Done     time.Time // from frontmatter (optional): completion date
+	Slug     string    // filename without .md extension
 }
 
 // Column represents a single Kanban column, backed by a subdirectory.
@@ -116,6 +119,11 @@ func LoadBoard(rootDir string) (*Board, error) {
 			return nil, err
 		}
 
+		// Apply special sorting for "done" columns
+		if isDoneColumn(name) {
+			sortDoneTasks(tasks, rootDir, entry.Name())
+		}
+
 		if order == -1 {
 			order = inferOrder(name)
 		}
@@ -206,6 +214,13 @@ func loadTasks(dir string) ([]Task, error) {
 	}
 
 	// Sort tasks by priority (high -> medium -> low -> other), then title, then slug
+	sortTasksByPriority(tasks)
+
+	return tasks, nil
+}
+
+// sortTasksByPriority sorts tasks by priority (high -> medium -> low -> other), then title, then slug
+func sortTasksByPriority(tasks []Task) {
 	sort.Slice(tasks, func(i, j int) bool {
 		priorityOrder := map[string]int{
 			"high":   0,
@@ -228,6 +243,63 @@ func loadTasks(dir string) ([]Task, error) {
 		}
 		return tasks[i].Slug < tasks[j].Slug
 	})
+}
 
-	return tasks, nil
+// isDoneColumn returns true if the column name (normalized) is "done"
+func isDoneColumn(name string) bool {
+	normalized := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+	return normalized == "done"
+}
+
+// sortDoneTasks sorts tasks in a done column by completion date (most recent first).
+// Tasks without a done date are logged as warnings and sorted to the end.
+// Secondary sort is by priority, then slug.
+func sortDoneTasks(tasks []Task, rootDir, columnName string) {
+	// Check for tasks without done dates and log warnings
+	for _, task := range tasks {
+		if task.Done.IsZero() {
+			log.Printf("Warning: Task %q in column %q/%s has no done date", task.Slug, rootDir, columnName)
+		}
+	}
+
+	// Very old date to use for sorting tasks without done dates to the end
+	veryOldDate := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	sort.Slice(tasks, func(i, j int) bool {
+		// Get effective done dates (use very old date if zero)
+		di := tasks[i].Done
+		if di.IsZero() {
+			di = veryOldDate
+		}
+		dj := tasks[j].Done
+		if dj.IsZero() {
+			dj = veryOldDate
+		}
+
+		// Sort by done date descending (most recent first)
+		if !di.Equal(dj) {
+			return di.After(dj)
+		}
+
+		// If dates are equal, fall back to priority sort
+		priorityOrder := map[string]int{
+			"high":   0,
+			"medium": 1,
+			"low":    2,
+		}
+		pi, oki := priorityOrder[strings.ToLower(tasks[i].Priority)]
+		if !oki {
+			pi = 3
+		}
+		pj, okj := priorityOrder[strings.ToLower(tasks[j].Priority)]
+		if !okj {
+			pj = 3
+		}
+		if pi != pj {
+			return pi < pj
+		}
+
+		// Finally sort by slug
+		return tasks[i].Slug < tasks[j].Slug
+	})
 }
