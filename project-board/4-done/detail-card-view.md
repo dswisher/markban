@@ -1,6 +1,7 @@
 ---
 color: green
 priority: medium
+done: 2026-04-25
 ---
 
 # Detail Card View

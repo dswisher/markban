@@ -19,6 +19,7 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(viewCmd)
+	rootCmd.AddCommand(detailCmd)
 
 	// Make "view" the default command when no subcommand is specified
 	// by copying view's RunE and Args settings to root
