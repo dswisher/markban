@@ -95,14 +95,14 @@ func renderBoard(b *board.Board, screenWidth, screenHeight int, useColor bool, w
 		columnWidth = minColumnWidth
 	}
 
-	// Calculate available height for cards (excluding header)
-	// Reserve lines at the bottom when there are warnings to prevent scrolling:
-	// - 1 line for the log output
-	// - 1 line for possible overflow message
-	// - 1 line for the warning count message
-	reservedLines := 0
+	// Calculate available height for cards (excluding header).
+	// Reserve lines at the bottom so the board fits without scrolling:
+	// - 1 line for the shell prompt that appears after the command exits
+	// - 1 line for the overflow message ("N more") when cards don't fit
+	// - 1 line for the warning count summary when there were warnings
+	reservedLines := 2
 	if warningCount > 0 {
-		reservedLines = 3
+		reservedLines++
 	}
 	availableHeight := screenHeight - headerHeight - reservedLines
 	if availableHeight < 1 {
