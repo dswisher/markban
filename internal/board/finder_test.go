@@ -74,6 +74,72 @@ func TestCardFinder_FindByTitleSubstring(t *testing.T) {
 	})
 }
 
+func TestCardFinder_FindByExactTitle(t *testing.T) {
+	testdataDir := filepath.Join("testdata", "board")
+	finder := NewCardFinder(testdataDir)
+	require.NotNil(t, finder)
+
+	t.Run("exact title match", func(t *testing.T) {
+		result, err := finder.FindByExactTitle("Backlog Task")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "backlog-task", result.Task.Slug)
+		assert.Equal(t, "Backlog Task", result.Task.Title)
+	})
+
+	t.Run("case-insensitive title match", func(t *testing.T) {
+		result, err := finder.FindByExactTitle("backlog task")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "backlog-task", result.Task.Slug)
+	})
+
+	t.Run("no match", func(t *testing.T) {
+		result, err := finder.FindByExactTitle("xyznonexistent")
+		assert.ErrorIs(t, err, ErrNoMatch)
+		assert.Nil(t, result)
+	})
+}
+
+func TestCardFinder_FindBySubstring(t *testing.T) {
+	testdataDir := filepath.Join("testdata", "board")
+	finder := NewCardFinder(testdataDir)
+	require.NotNil(t, finder)
+
+	t.Run("single match by slug only", func(t *testing.T) {
+		results, err := finder.FindBySubstring("task-one")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, "todo-task-one", results[0].Task.Slug)
+	})
+
+	t.Run("single match by title only", func(t *testing.T) {
+		results, err := finder.FindBySubstring("Backlog")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, "backlog-task", results[0].Task.Slug)
+	})
+
+	t.Run("deduplicates slug and title match for same card", func(t *testing.T) {
+		results, err := finder.FindBySubstring("backlog")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, "backlog-task", results[0].Task.Slug)
+	})
+
+	t.Run("multiple matches", func(t *testing.T) {
+		results, err := finder.FindBySubstring("Task")
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 2)
+	})
+
+	t.Run("no match", func(t *testing.T) {
+		results, err := finder.FindBySubstring("xyznonexistent")
+		require.NoError(t, err)
+		assert.Empty(t, results)
+	})
+}
+
 func TestCardFinder_FindCard(t *testing.T) {
 	// Use the existing testdata directory
 	testdataDir := filepath.Join("testdata", "board")
@@ -88,11 +154,32 @@ func TestCardFinder_FindCard(t *testing.T) {
 		assert.Equal(t, "backlog-task", result.Task.Slug)
 	})
 
-	t.Run("title match when no slug match", func(t *testing.T) {
+	t.Run("exact title match when no slug match", func(t *testing.T) {
+		result, err := finder.FindCard("Backlog Task")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "backlog-task", result.Task.Slug)
+	})
+
+	t.Run("partial title match when no exact match", func(t *testing.T) {
 		result, err := finder.FindCard("Backlog")
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, "Backlog Task", result.Task.Title)
+	})
+
+	t.Run("partial slug single match", func(t *testing.T) {
+		result, err := finder.FindCard("task-one")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "todo-task-one", result.Task.Slug)
+	})
+
+	t.Run("partial slug and title deduplicated to single match", func(t *testing.T) {
+		result, err := finder.FindCard("two")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "todo-task-two", result.Task.Slug)
 	})
 
 	t.Run("no matches", func(t *testing.T) {
@@ -101,11 +188,18 @@ func TestCardFinder_FindCard(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
-	t.Run("multiple title matches returns error", func(t *testing.T) {
+	t.Run("multiple matches returns error", func(t *testing.T) {
 		result, err := finder.FindCard("Task")
 		assert.ErrorIs(t, err, ErrMultipleMatches)
 		assert.Nil(t, result)
 		// Error message should contain match details
+		assert.Contains(t, err.Error(), "multiple cards match")
+	})
+
+	t.Run("multiple partial slug matches returns error", func(t *testing.T) {
+		result, err := finder.FindCard("todo-task")
+		assert.ErrorIs(t, err, ErrMultipleMatches)
+		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "multiple cards match")
 	})
 }

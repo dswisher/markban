@@ -47,7 +47,9 @@ func NewCardFinder(rootDir string) *CardFinder {
 
 // FindCard searches for a card using fuzzy matching:
 //  1. Exact slug match (case-insensitive)
-//  2. Title substring match (case-insensitive, only if unique)
+//  2. Exact title match (case-insensitive)
+//  3. Partial substring match against both slugs and titles (case-insensitive)
+//     If exactly one card matches, it is returned. If multiple match, an error listing all matches is returned.
 //
 // The archive directory is always excluded from searches.
 func (f *CardFinder) FindCard(query string) (*MatchResult, error) {
@@ -60,8 +62,17 @@ func (f *CardFinder) FindCard(query string) (*MatchResult, error) {
 		return nil, err
 	}
 
-	// No slug match, try title substring match
-	matches, err := f.FindByTitleSubstring(query)
+	// No exact slug match, try exact title match
+	result, err = f.FindByExactTitle(query)
+	if err == nil {
+		return result, nil
+	}
+	if !errors.Is(err, ErrNoMatch) {
+		return nil, err
+	}
+
+	// No exact match, try partial matches from both slugs and titles
+	matches, err := f.FindBySubstring(query)
 	if err != nil {
 		return nil, err
 	}
@@ -215,6 +226,156 @@ func (f *CardFinder) findByTitleInColumn(columnPath, columnDirName, queryLower s
 		}
 
 		if strings.Contains(strings.ToLower(task.Title), queryLower) {
+			matches = append(matches, MatchResult{
+				Task:   task,
+				Path:   taskPath,
+				Column: columnDirName,
+			})
+		}
+	}
+
+	return matches, nil
+}
+
+// FindByExactTitle searches for a card whose title exactly matches the given query.
+// The search is case-insensitive. The archive directory is always excluded.
+func (f *CardFinder) FindByExactTitle(query string) (*MatchResult, error) {
+	queryLower := strings.ToLower(query)
+
+	entries, err := os.ReadDir(f.rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("reading board directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		// Skip hidden directories
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+		// Skip archive directory
+		if isArchiveDir(entry.Name()) {
+			continue
+		}
+
+		columnPath := filepath.Join(f.rootDir, entry.Name())
+		result, err := f.findExactTitleInColumn(columnPath, entry.Name(), queryLower)
+		if err != nil {
+			return nil, err
+		}
+		if result != nil {
+			return result, nil
+		}
+	}
+
+	return nil, ErrNoMatch
+}
+
+// findExactTitleInColumn searches for a card by exact title within a specific column directory.
+func (f *CardFinder) findExactTitleInColumn(columnPath, columnDirName, queryLower string) (*MatchResult, error) {
+	entries, err := os.ReadDir(columnPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading column directory %q: %w", columnPath, err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+
+		taskPath := filepath.Join(columnPath, entry.Name())
+		task, err := ParseTask(taskPath)
+		if err != nil {
+			return nil, fmt.Errorf("parsing task %q: %w", taskPath, err)
+		}
+
+		if strings.ToLower(task.Title) == queryLower {
+			return &MatchResult{
+				Task:   task,
+				Path:   taskPath,
+				Column: columnDirName,
+			}, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// FindBySubstring searches for cards whose slug or title contains the given substring.
+// The search is case-insensitive. Results are deduplicated so a card is only returned once
+// even if both its slug and title match. The archive directory is always excluded.
+func (f *CardFinder) FindBySubstring(query string) ([]MatchResult, error) {
+	queryLower := strings.ToLower(query)
+	var matches []MatchResult
+	seen := make(map[string]bool)
+
+	entries, err := os.ReadDir(f.rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("reading board directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		// Skip hidden directories
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+		// Skip archive directory
+		if isArchiveDir(entry.Name()) {
+			continue
+		}
+
+		columnPath := filepath.Join(f.rootDir, entry.Name())
+		columnMatches, err := f.findBySubstringInColumn(columnPath, entry.Name(), queryLower)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, m := range columnMatches {
+			if !seen[m.Path] {
+				matches = append(matches, m)
+				seen[m.Path] = true
+			}
+		}
+	}
+
+	return matches, nil
+}
+
+// findBySubstringInColumn searches for cards by slug or title substring within a specific column directory.
+func (f *CardFinder) findBySubstringInColumn(columnPath, columnDirName, queryLower string) ([]MatchResult, error) {
+	var matches []MatchResult
+
+	entries, err := os.ReadDir(columnPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading column directory %q: %w", columnPath, err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+
+		taskPath := filepath.Join(columnPath, entry.Name())
+		task, err := ParseTask(taskPath)
+		if err != nil {
+			return nil, fmt.Errorf("parsing task %q: %w", taskPath, err)
+		}
+
+		slugLower := strings.ToLower(task.Slug)
+		titleLower := strings.ToLower(task.Title)
+
+		if strings.Contains(slugLower, queryLower) || strings.Contains(titleLower, queryLower) {
 			matches = append(matches, MatchResult{
 				Task:   task,
 				Path:   taskPath,
