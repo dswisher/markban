@@ -44,10 +44,9 @@ const (
 
 func runView(cmd *cobra.Command, args []string) error {
 	// Enable ANSI escape sequence support on Windows
-	if err := terminal.EnableVirtualTerminalProcessing(); err != nil {
-		// Non-fatal: terminal may still work or user can use --no-color
-		// Log to stderr if needed, but silently continue for now
-	}
+	// Enable ANSI escape sequence support on Windows.
+	// Non-fatal: terminal may still work or user can use --no-color.
+	_ = terminal.EnableVirtualTerminalProcessing()
 
 	dir, err := resolveBoardDir(args)
 	if err != nil {
@@ -148,7 +147,7 @@ func renderColumns(columns []board.Column, columnWidth, availableHeight, screenW
 	fmt.Println()
 
 	// Print separator line
-	for i := 0; i < maxColumns; i++ {
+	for i := range maxColumns {
 		if i > 0 {
 			fmt.Print(strings.Repeat(" ", columnPadding))
 		}

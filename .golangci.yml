@@ -1,0 +1,16 @@
+run:
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - staticcheck
+    - intrange
+
+linters-settings:
+  gofmt:
+    simplify: false
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

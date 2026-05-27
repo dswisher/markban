@@ -12,10 +12,10 @@ import (
 
 // frontmatter holds the optional YAML fields at the top of a task file.
 type frontmatter struct {
-	Priority string    `yaml:"priority"`
-	Tags     []string  `yaml:"tags"`
-	Color    string    `yaml:"color"`
-	Done     yamlDone  `yaml:"done"`
+	Priority string   `yaml:"priority"`
+	Tags     []string `yaml:"tags"`
+	Color    string   `yaml:"color"`
+	Done     yamlDone `yaml:"done"`
 }
 
 // yamlDone is a custom type to handle optional date parsing from YAML
