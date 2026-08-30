@@ -1,6 +1,7 @@
 package board
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -17,6 +18,18 @@ func TestParseTask_WithFrontmatter(t *testing.T) {
 	assert.Equal(t, "A short blurb about the task.", task.Blurb)
 	assert.Equal(t, "high", task.Priority)
 	assert.Equal(t, []string{"go", "cli"}, task.Tags)
+	assert.Equal(t, "task", task.Type)
+}
+
+func TestParseTask_WithEpicMetadata(t *testing.T) {
+	path := t.TempDir() + "/epic-child.md"
+	err := os.WriteFile(path, []byte("---\ntype: epic\nepic: campaign\ndepends_on:\n  - first-task\n  - second-task\n---\n# Epic\n"), 0o644)
+	require.NoError(t, err)
+	task, err := ParseTask(path)
+	require.NoError(t, err)
+	assert.Equal(t, "epic", task.Type)
+	assert.Equal(t, "campaign", task.Epic)
+	assert.Equal(t, []string{"first-task", "second-task"}, task.DependsOn)
 }
 
 func TestParseTask_NoFrontmatter(t *testing.T) {

@@ -85,9 +85,9 @@ func (f *CardFinder) FindCard(query string) (*MatchResult, error) {
 	default:
 		// Build error message with all matches
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("multiple cards match '%s':\n", query))
+		fmt.Fprintf(&sb, "multiple cards match '%s':\n", query)
 		for _, m := range matches {
-			sb.WriteString(fmt.Sprintf("  - %s (in %s)\n", m.Task.Title, m.Column))
+			fmt.Fprintf(&sb, "  - %s (in %s)\n", m.Task.Title, m.Column)
 		}
 		return nil, &multipleMatchesError{
 			msg:   sb.String(),

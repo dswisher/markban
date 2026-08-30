@@ -189,3 +189,23 @@ func TestLoadBoard_DoneColumnSortByDate(t *testing.T) {
 	assert.Equal(t, "2026-04-15", doneCol.Tasks[2].Done.Format("2006-01-02"))
 	assert.True(t, doneCol.Tasks[3].Done.IsZero())
 }
+
+func TestResolveRelationships(t *testing.T) {
+	columns := []Column{
+		{Name: "todo", Tasks: []Task{
+			{Slug: "blocked", Title: "Blocked", DependsOn: []string{"active"}, Priority: "high"},
+			{Slug: "ready", Title: "Ready", Priority: "low"},
+			{Slug: "active", Title: "Active", Column: "in progress"},
+			{Slug: "archived-ready", Title: "Archived Ready", DependsOn: []string{"archived"}, Priority: "high"},
+			{Slug: "epic", Title: "Epic", Type: "epic", Blocked: true},
+		}},
+	}
+	resolveRelationships(columns, []Task{{Slug: "archived", Column: "archive"}})
+
+	assert.Equal(t, "epic", columns[0].Tasks[0].Slug, "epics should sort first")
+	assert.False(t, columns[0].Tasks[1].Blocked, "archived dependency should be complete")
+	assert.Equal(t, "archived-ready", columns[0].Tasks[1].Slug)
+	assert.Equal(t, "ready", columns[0].Tasks[2].Slug)
+	assert.Equal(t, "active", columns[0].Tasks[3].Slug)
+	assert.True(t, columns[0].Tasks[4].Blocked)
+}

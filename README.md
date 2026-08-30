@@ -28,6 +28,10 @@ Tasks are plain markdown files, with optional YAML frontmatter:
 priority: medium
 color: yellow
 tags: []
+type: task
+epic: parent-epic
+depends_on:
+  - prerequisite-task
 ---
 
 # Task Title
@@ -47,6 +51,17 @@ A longer, free-form description of the task.
 
 The only required bit is the task title.
 Everything else is optional.
+
+The `type` field defaults to `task`. Set it to `epic` for a high-level card
+that groups related work. Other cards can set `epic` to the epic's slug; these
+direct subtasks are listed when viewing the epic with `markban detail`.
+
+Use `depends_on` for prerequisite card slugs. A card is blocked until every
+dependency is in the `done` or `archive` column. Missing or cyclic dependencies
+are also treated as blocked. Within each column, unblocked cards are shown
+before blocked cards, followed by priority ordering.
+
+Epic and blocked indicators are shown in both terminal and browser views.
 
 The supported colors are yellow, green, blue, red, magenta, cyan, orange and purple. Note that in terminal mode (`markban view`), orange and purple require a 256-color terminal.
 
@@ -83,4 +98,3 @@ Some random notes on coding conventions:
 ### License
 
 MIT License.
-

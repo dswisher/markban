@@ -12,10 +12,13 @@ import (
 
 // frontmatter holds the optional YAML fields at the top of a task file.
 type frontmatter struct {
-	Priority string   `yaml:"priority"`
-	Tags     []string `yaml:"tags"`
-	Color    string   `yaml:"color"`
-	Done     yamlDone `yaml:"done"`
+	Priority  string   `yaml:"priority"`
+	Tags      []string `yaml:"tags"`
+	Color     string   `yaml:"color"`
+	Done      yamlDone `yaml:"done"`
+	Type      string   `yaml:"type"`
+	Epic      string   `yaml:"epic"`
+	DependsOn []string `yaml:"depends_on"`
 }
 
 // yamlDone is a custom type to handle optional date parsing from YAML
@@ -67,14 +70,24 @@ func ParseTask(path string) (Task, error) {
 	title, blurb := extractTitleAndBlurb(content)
 
 	return Task{
-		Title:    title,
-		Blurb:    blurb,
-		Priority: fm.Priority,
-		Tags:     fm.Tags,
-		Color:    fm.Color,
-		Done:     time.Time(fm.Done),
-		Slug:     slug,
+		Title:     title,
+		Blurb:     blurb,
+		Priority:  fm.Priority,
+		Tags:      fm.Tags,
+		Color:     fm.Color,
+		Done:      time.Time(fm.Done),
+		Type:      taskType(fm.Type),
+		Epic:      fm.Epic,
+		DependsOn: fm.DependsOn,
+		Slug:      slug,
 	}, nil
+}
+
+func taskType(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "task"
+	}
+	return strings.ToLower(strings.TrimSpace(value))
 }
 
 // extractTitleAndBlurb scans markdown text for the first "# " heading and the

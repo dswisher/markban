@@ -132,6 +132,19 @@ func TestRenderHTML_NoArchiveLink(t *testing.T) {
 	assert.NotContains(t, buf.String(), `href="/archive"`)
 }
 
+func TestRenderHTML_RelationshipIndicators(t *testing.T) {
+	b := &board.Board{Columns: []board.Column{{Name: "Todo", Tasks: []board.Task{
+		{Title: "Epic", Type: "epic"},
+		{Title: "Child", Epic: "epic", Blocked: true},
+	}}}}
+
+	var buf strings.Builder
+	require.NoError(t, renderHTML(b, &buf, true, false))
+	assert.Contains(t, buf.String(), "EPIC")
+	assert.Contains(t, buf.String(), "epic: epic")
+	assert.Contains(t, buf.String(), "BLOCKED")
+}
+
 func TestRenderArchive(t *testing.T) {
 	tasks := []board.Task{
 		{Title: "Old Task", Blurb: "This was archived."},

@@ -316,6 +316,25 @@ func renderCard(task board.Task, columnWidth, remainingHeight int, isLastCard bo
 	}
 	remainingHeight--
 
+	if remainingHeight > 0 && (task.Type == "epic" || task.Epic != "" || task.Blocked) {
+		var indicators []string
+		if task.Type == "epic" {
+			indicators = append(indicators, "EPIC")
+		}
+		if task.Epic != "" {
+			indicators = append(indicators, "epic: "+task.Epic)
+		}
+		if task.Blocked {
+			indicators = append(indicators, "BLOCKED")
+		}
+		line := strings.Repeat(" ", blurbIndent) + "[" + strings.Join(indicators, ", ") + "]"
+		if useCardColor {
+			line = terminal.CardForeground(line, task.Color)
+		}
+		lines = append(lines, truncate(line, columnWidth))
+		remainingHeight--
+	}
+
 	// Blurb (indented, wrapped or truncated)
 	if task.Blurb != "" && remainingHeight > 0 {
 		blurbWidth := columnWidth - blurbIndent

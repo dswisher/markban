@@ -105,6 +105,12 @@ const boardTemplate = `<!DOCTYPE html>
       color: #a0aec0;
     }
 
+    .card-indicators {
+      font-size: 0.7rem;
+      color: #c05621;
+      margin-top: 0.4rem;
+    }
+
     .empty {
       font-size: 0.8rem;
       color: #a0aec0;
@@ -138,7 +144,8 @@ const boardTemplate = `<!DOCTYPE html>
     }
 
     .card-colored .card-slug,
-    .card-colored .card-priority {
+    .card-colored .card-priority,
+    .card-colored .card-indicators {
       color: #718096;
     }
 
@@ -182,6 +189,8 @@ const boardTemplate = `<!DOCTYPE html>
         color: #718096;
       }
 
+      .card-indicators { color: #f6ad55; }
+
       .empty {
         color: #718096;
       }
@@ -220,7 +229,10 @@ const boardTemplate = `<!DOCTYPE html>
         {{- if .Tasks}}
          {{- range .Tasks}}
          <div class="card{{if .Color}} card-colored{{end}}" style="{{cardStyle .Color}}">
-           <div class="card-title">{{.Title}}</div>
+             <div class="card-title">{{.Title}}</div>
+            {{- if or (eq .Type "epic") .Epic .Blocked}}
+            <div class="card-indicators">{{if eq .Type "epic"}}EPIC {{end}}{{if .Epic}}epic: {{.Epic}} {{end}}{{if .Blocked}}BLOCKED{{end}}</div>
+            {{- end}}
            {{- if .Blurb}}
            <div class="card-blurb">{{.Blurb}}</div>
            {{- end}}

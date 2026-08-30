@@ -15,13 +15,18 @@ import (
 
 // Task represents a single Kanban card, parsed from a Markdown file.
 type Task struct {
-	Title    string    // from the first # heading
-	Blurb    string    // the line immediately after the title (if any)
-	Priority string    // from frontmatter (optional)
-	Tags     []string  // from frontmatter (optional)
-	Color    string    // from frontmatter (optional): yellow, green, blue, red, orange, purple, magenta, cyan
-	Done     time.Time // from frontmatter (optional): completion date
-	Slug     string    // filename without .md extension
+	Title     string    // from the first # heading
+	Blurb     string    // the line immediately after the title (if any)
+	Priority  string    // from frontmatter (optional)
+	Tags      []string  // from frontmatter (optional)
+	Color     string    // from frontmatter (optional): yellow, green, blue, red, orange, purple, magenta, cyan
+	Done      time.Time // from frontmatter (optional): completion date
+	Type      string    // from frontmatter (optional): task or epic
+	Epic      string    // from frontmatter (optional): parent epic slug
+	DependsOn []string  // from frontmatter (optional): prerequisite slugs
+	Blocked   bool      // derived: a dependency is missing or unfinished
+	Column    string    // derived: current column display name
+	Slug      string    // filename without .md extension
 }
 
 // Column represents a single Kanban column, backed by a subdirectory.
@@ -100,6 +105,10 @@ func LoadBoard(rootDir string) (*Board, int, error) {
 
 	var columns []Column
 	warningCount := 0
+	archiveTasks, err := LoadArchive(rootDir)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -125,6 +134,9 @@ func LoadBoard(rootDir string) (*Board, int, error) {
 		if isDoneColumn(name) {
 			warningCount += sortDoneTasks(tasks, rootDir, entry.Name())
 		}
+		for i := range tasks {
+			tasks[i].Column = name
+		}
 
 		if order == -1 {
 			order = inferOrder(name)
@@ -136,6 +148,8 @@ func LoadBoard(rootDir string) (*Board, int, error) {
 			Tasks: tasks,
 		})
 	}
+
+	resolveRelationships(columns, archiveTasks)
 
 	sort.Slice(columns, func(i, j int) bool {
 		if columns[i].Order != columns[j].Order {
@@ -167,7 +181,11 @@ func LoadArchive(rootDir string) ([]Task, error) {
 			continue
 		}
 		if isArchiveDir(entry.Name()) {
-			return loadTasks(filepath.Join(rootDir, entry.Name()))
+			tasks, err := loadTasks(filepath.Join(rootDir, entry.Name()))
+			for i := range tasks {
+				tasks[i].Column = "archive"
+			}
+			return tasks, err
 		}
 	}
 
@@ -245,6 +263,78 @@ func sortTasksByPriority(tasks []Task) {
 		}
 		return tasks[i].Slug < tasks[j].Slug
 	})
+}
+
+// resolveRelationships computes dependency state and sorts active cards.
+// Archived cards are included as completed dependency targets but are not
+// added to the displayed board.
+func resolveRelationships(columns []Column, archived []Task) {
+	bySlug := make(map[string]Task)
+	for _, task := range archived {
+		bySlug[strings.ToLower(task.Slug)] = task
+	}
+	for _, column := range columns {
+		for _, task := range column.Tasks {
+			bySlug[strings.ToLower(task.Slug)] = task
+		}
+	}
+
+	for columnIndex := range columns {
+		for taskIndex := range columns[columnIndex].Tasks {
+			task := &columns[columnIndex].Tasks[taskIndex]
+			task.Blocked = false
+			for _, dependency := range task.DependsOn {
+				dependencyTask, ok := bySlug[strings.ToLower(strings.TrimSpace(dependency))]
+				if !ok || !isCompletedColumn(dependencyTask.Column) {
+					task.Blocked = true
+					break
+				}
+			}
+		}
+		if isDoneColumn(columns[columnIndex].Name) {
+			sort.SliceStable(columns[columnIndex].Tasks, func(i, j int) bool {
+				return isEpic(columns[columnIndex].Tasks[i]) && !isEpic(columns[columnIndex].Tasks[j])
+			})
+			continue
+		}
+		sort.SliceStable(columns[columnIndex].Tasks, func(i, j int) bool {
+			if isEpic(columns[columnIndex].Tasks[i]) != isEpic(columns[columnIndex].Tasks[j]) {
+				return isEpic(columns[columnIndex].Tasks[i])
+			}
+			if columns[columnIndex].Tasks[i].Blocked != columns[columnIndex].Tasks[j].Blocked {
+				return !columns[columnIndex].Tasks[i].Blocked
+			}
+			return taskPriorityLess(columns[columnIndex].Tasks[i], columns[columnIndex].Tasks[j])
+		})
+	}
+}
+
+func isEpic(task Task) bool {
+	return strings.EqualFold(task.Type, "epic")
+}
+
+func taskPriorityLess(left, right Task) bool {
+	priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
+	leftPriority, ok := priorityOrder[strings.ToLower(left.Priority)]
+	if !ok {
+		leftPriority = 3
+	}
+	rightPriority, ok := priorityOrder[strings.ToLower(right.Priority)]
+	if !ok {
+		rightPriority = 3
+	}
+	if leftPriority != rightPriority {
+		return leftPriority < rightPriority
+	}
+	if left.Title != right.Title {
+		return left.Title < right.Title
+	}
+	return left.Slug < right.Slug
+}
+
+func isCompletedColumn(name string) bool {
+	normalized := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+	return normalized == "done" || normalized == "archive"
 }
 
 // isDoneColumn returns true if the column name (normalized) is "done"
