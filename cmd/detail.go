@@ -146,6 +146,7 @@ func loadEpicSummary(dir, epicSlug string) (string, error) {
 			subtasks = append(subtasks, task)
 		}
 	}
+	subtasks = sortEpicSubtasks(subtasks)
 
 	var summary strings.Builder
 	summary.WriteString("\n\n## Subtasks\n\n")
@@ -162,6 +163,57 @@ func loadEpicSummary(dir, epicSlug string) (string, error) {
 		fmt.Fprintf(&summary, "| %s | %s | `%s` |\n", task.Title, status, task.Slug)
 	}
 	return summary.String(), nil
+}
+
+// sortEpicSubtasks returns direct subtasks in stable dependency order. Only
+// dependencies that are also subtasks of this epic affect the ordering.
+func sortEpicSubtasks(subtasks []board.Task) []board.Task {
+	if len(subtasks) < 2 {
+		return subtasks
+	}
+
+	bySlug := make(map[string]struct{}, len(subtasks))
+	for _, task := range subtasks {
+		bySlug[strings.ToLower(task.Slug)] = struct{}{}
+	}
+
+	remaining := append([]board.Task(nil), subtasks...)
+	ordered := make([]board.Task, 0, len(subtasks))
+	for len(remaining) > 0 {
+		progressed := false
+		for i, task := range remaining {
+			blockedBySibling := false
+			for _, dependency := range task.DependsOn {
+				dependencySlug := strings.ToLower(strings.TrimSpace(dependency))
+				if _, isSibling := bySlug[dependencySlug]; !isSibling {
+					continue
+				}
+				for _, candidate := range remaining {
+					if strings.EqualFold(candidate.Slug, dependencySlug) {
+						blockedBySibling = true
+						break
+					}
+				}
+				if blockedBySibling {
+					break
+				}
+			}
+			if blockedBySibling {
+				continue
+			}
+			ordered = append(ordered, task)
+			remaining = append(remaining[:i], remaining[i+1:]...)
+			progressed = true
+			break
+		}
+		if !progressed {
+			// A cycle has no valid next node; retain deterministic input order.
+			ordered = append(ordered, remaining...)
+			break
+		}
+	}
+
+	return ordered
 }
 
 // runViewer executes the markdown viewer with the given file.

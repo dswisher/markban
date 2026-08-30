@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/dswisher/markban/internal/board"
 )
 
 func TestLoadEpicSummary(t *testing.T) {
@@ -24,4 +26,18 @@ func TestLoadEpicSummary(t *testing.T) {
 	assert.Contains(t, summary, "todo")
 	assert.Contains(t, summary, "Finished")
 	assert.Contains(t, summary, "done")
+}
+
+func TestSortEpicSubtasksByDependency(t *testing.T) {
+	subtasks := []board.Task{
+		{Slug: "third", DependsOn: []string{"second"}},
+		{Slug: "second", DependsOn: []string{"first"}},
+		{Slug: "first"},
+		{Slug: "external-dependent", DependsOn: []string{"outside-epic"}},
+	}
+
+	ordered := sortEpicSubtasks(subtasks)
+	assert.Equal(t, []string{"first", "second", "third", "external-dependent"}, []string{
+		ordered[0].Slug, ordered[1].Slug, ordered[2].Slug, ordered[3].Slug,
+	})
 }
