@@ -149,7 +149,7 @@ func LoadBoard(rootDir string) (*Board, int, error) {
 		})
 	}
 
-	resolveRelationships(columns, archiveTasks)
+	warningCount += resolveRelationships(columns, archiveTasks)
 
 	sort.Slice(columns, func(i, j int) bool {
 		if columns[i].Order != columns[j].Order {
@@ -268,7 +268,9 @@ func sortTasksByPriority(tasks []Task) {
 // resolveRelationships computes dependency state and sorts active cards.
 // Archived cards are included as completed dependency targets but are not
 // added to the displayed board.
-func resolveRelationships(columns []Column, archived []Task) {
+// It returns the number of missing dependency warnings.
+func resolveRelationships(columns []Column, archived []Task) int {
+	warningCount := 0
 	bySlug := make(map[string]Task)
 	for _, task := range archived {
 		bySlug[strings.ToLower(task.Slug)] = task
@@ -284,10 +286,16 @@ func resolveRelationships(columns []Column, archived []Task) {
 			task := &columns[columnIndex].Tasks[taskIndex]
 			task.Blocked = false
 			for _, dependency := range task.DependsOn {
-				dependencyTask, ok := bySlug[strings.ToLower(strings.TrimSpace(dependency))]
-				if !ok || !isCompletedColumn(dependencyTask.Column) {
+				dependencySlug := strings.TrimSpace(dependency)
+				dependencyTask, ok := bySlug[strings.ToLower(dependencySlug)]
+				if !ok {
+					warningCount++
+					log.Printf("Warning: Task %q depends on missing task %q", task.Slug, dependencySlug)
 					task.Blocked = true
-					break
+					continue
+				}
+				if !isCompletedColumn(dependencyTask.Column) {
+					task.Blocked = true
 				}
 			}
 		}
@@ -307,6 +315,7 @@ func resolveRelationships(columns []Column, archived []Task) {
 			return taskPriorityLess(columns[columnIndex].Tasks[i], columns[columnIndex].Tasks[j])
 		})
 	}
+	return warningCount
 }
 
 func isEpic(task Task) bool {

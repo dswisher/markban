@@ -1,6 +1,8 @@
 package board
 
 import (
+	"bytes"
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -200,12 +202,25 @@ func TestResolveRelationships(t *testing.T) {
 			{Slug: "epic", Title: "Epic", Type: "epic", Blocked: true},
 		}},
 	}
-	resolveRelationships(columns, []Task{{Slug: "archived", Column: "archive"}})
+	warningCount := resolveRelationships(columns, []Task{{Slug: "archived", Column: "archive"}})
 
+	assert.Equal(t, 0, warningCount)
 	assert.Equal(t, "epic", columns[0].Tasks[0].Slug, "epics should sort first")
 	assert.False(t, columns[0].Tasks[1].Blocked, "archived dependency should be complete")
 	assert.Equal(t, "archived-ready", columns[0].Tasks[1].Slug)
 	assert.Equal(t, "ready", columns[0].Tasks[2].Slug)
 	assert.Equal(t, "active", columns[0].Tasks[3].Slug)
 	assert.True(t, columns[0].Tasks[4].Blocked)
+}
+
+func TestLoadBoard_MissingDependencyWarning(t *testing.T) {
+	var logs bytes.Buffer
+	originalOutput := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(originalOutput) })
+
+	_, warningCount, err := LoadBoard("testdata/board-with-missing-dependency")
+	require.NoError(t, err)
+	assert.Equal(t, 1, warningCount)
+	assert.Contains(t, logs.String(), `Warning: Task "task" depends on missing task "dev-console"`)
 }
